@@ -155,7 +155,6 @@ const ElevenLabsTTSTest = () => {
 
       const { data, error } = await supabase.functions.invoke('tts', {
         body: payload,
-        responseType: 'arrayBuffer',
       });
 
       if (error) {
@@ -170,8 +169,32 @@ const ElevenLabsTTSTest = () => {
 
       console.log("[TTS] Received data type:", data ? Object.prototype.toString.call(data) : 'null');
 
-      if (data instanceof ArrayBuffer || data instanceof Uint8Array) {
+      if (data instanceof ArrayBuffer) {
         const audioBlob = new Blob([data], { type: 'audio/mpeg' });
+        const url = URL.createObjectURL(audioBlob);
+        setAudioUrl(url);
+
+        // Auto-play the audio
+        const audio = new Audio(url);
+        audio.play().catch(err => {
+          console.error('Auto-play failed:', err);
+          toast({
+            title: "Audio Ready",
+            description: "Speech generated successfully! Click the download link to play.",
+          });
+        });
+
+        toast({
+          title: "Success",
+          description: "Speech generated successfully!",
+        });
+      } else if (typeof data === 'string' && data.startsWith('ID3')) {
+        // Handle case where audio data comes as a binary string
+        const bytes = new Uint8Array(data.length);
+        for (let i = 0; i < data.length; i++) {
+          bytes[i] = data.charCodeAt(i);
+        }
+        const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
         const url = URL.createObjectURL(audioBlob);
         setAudioUrl(url);
 
