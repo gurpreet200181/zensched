@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -7,7 +8,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, ChevronDown, Download, Volume2, CheckCircle } from 'lucide-react';
+import { Loader2, ChevronDown, Download, Volume2, CheckCircle, Play, Pause } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -42,6 +43,8 @@ const ElevenLabsTTSTest = () => {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [healthStatus, setHealthStatus] = useState<{ ok: boolean; hasKey: boolean } | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const maxChars = 5000;
   const remainingChars = maxChars - settings.text.length;
@@ -140,6 +143,7 @@ const ElevenLabsTTSTest = () => {
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl);
         setAudioUrl(null);
+        setIsPlaying(false);
       }
 
       const payload = {
@@ -174,16 +178,6 @@ const ElevenLabsTTSTest = () => {
         const url = URL.createObjectURL(audioBlob);
         setAudioUrl(url);
 
-        // Auto-play the audio
-        const audio = new Audio(url);
-        audio.play().catch(err => {
-          console.error('Auto-play failed:', err);
-          toast({
-            title: "Audio Ready",
-            description: "Speech generated successfully! Click the download link to play.",
-          });
-        });
-
         toast({
           title: "Success",
           description: "Speech generated successfully!",
@@ -197,16 +191,6 @@ const ElevenLabsTTSTest = () => {
         const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
         const url = URL.createObjectURL(audioBlob);
         setAudioUrl(url);
-
-        // Auto-play the audio
-        const audio = new Audio(url);
-        audio.play().catch(err => {
-          console.error('Auto-play failed:', err);
-          toast({
-            title: "Audio Ready",
-            description: "Speech generated successfully! Click the download link to play.",
-          });
-        });
 
         toast({
           title: "Success",
@@ -230,6 +214,29 @@ const ElevenLabsTTSTest = () => {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const togglePlayback = () => {
+    if (!audioRef.current || !audioUrl) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play().catch(err => {
+        console.error('Audio playback failed:', err);
+        toast({
+          title: "Playback Error",
+          description: "Failed to play audio. Try downloading the file instead.",
+          variant: "destructive",
+        });
+      });
+      setIsPlaying(true);
+    }
+  };
+
+  const handleAudioEnded = () => {
+    setIsPlaying(false);
   };
 
   const updateSettings = (key: keyof TTSSettings, value: any) => {
@@ -402,20 +409,52 @@ const ElevenLabsTTSTest = () => {
           )}
         </Button>
 
-        {/* Download Link */}
+        {/* Audio Player */}
         {audioUrl && (
-          <div className="flex items-center justify-center gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
-            <div className="text-green-800 font-medium">Audio ready!</div>
-            <Button asChild variant="outline" size="sm">
-              <a
-                href={audioUrl}
-                download="speech.mp3"
+          <div className="space-y-4 p-4 bg-green-50 rounded-lg border border-green-200">
+            <div className="text-green-800 font-medium text-center">Audio Generated!</div>
+            
+            {/* Audio element */}
+            <audio
+              ref={audioRef}
+              src={audioUrl}
+              onEnded={handleAudioEnded}
+              preload="metadata"
+              className="hidden"
+            />
+            
+            {/* Custom audio controls */}
+            <div className="flex items-center justify-center gap-4">
+              <Button
+                onClick={togglePlayback}
+                variant="outline"
+                size="sm"
                 className="flex items-center gap-2"
               >
-                <Download className="h-4 w-4" />
-                Download speech.mp3
-              </a>
-            </Button>
+                {isPlaying ? (
+                  <>
+                    <Pause className="h-4 w-4" />
+                    Pause
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4" />
+                    Play
+                  </>
+                )}
+              </Button>
+              
+              <Button asChild variant="outline" size="sm">
+                <a
+                  href={audioUrl}
+                  download="speech.mp3"
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Download MP3
+                </a>
+              </Button>
+            </div>
           </div>
         )}
 
