@@ -1,8 +1,12 @@
 
 import { Calendar, Brain, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import AuthDialog from './AuthDialog';
 
 const WellnessHero = () => {
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+
   return (
     <div className="min-h-screen bg-hero-gradient flex items-center justify-center relative overflow-hidden">
       {/* Floating background elements */}
@@ -59,6 +63,7 @@ const WellnessHero = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{ animationDelay: '0.8s' }}>
             <Button 
               size="lg"
+              onClick={() => setShowAuthDialog(true)}
               className="bg-white/20 backdrop-blur-md hover:bg-white/30 text-white border border-white/30 hover:border-white/50 rounded-xl px-8 py-4 text-lg font-medium transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1"
             >
               Get Started Free
@@ -81,6 +86,8 @@ const WellnessHero = () => {
           </div>
         </div>
       </div>
+
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
   );
 };
