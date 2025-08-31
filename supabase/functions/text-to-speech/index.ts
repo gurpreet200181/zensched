@@ -45,16 +45,23 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error('ElevenLabs API error:', error);
-      throw new Error(`ElevenLabs API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('ElevenLabs API error:', errorText);
+      throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
     }
 
-    // Convert audio to base64
+    // Get audio as array buffer
     const audioBuffer = await response.arrayBuffer();
-    const base64Audio = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
+    
+    // Convert to base64
+    const uint8Array = new Uint8Array(audioBuffer);
+    let binaryString = '';
+    for (let i = 0; i < uint8Array.length; i++) {
+      binaryString += String.fromCharCode(uint8Array[i]);
+    }
+    const base64Audio = btoa(binaryString);
 
-    console.log('Speech generated successfully');
+    console.log('Speech generated successfully, audio size:', audioBuffer.byteLength, 'bytes');
 
     return new Response(
       JSON.stringify({ audioContent: base64Audio }),
