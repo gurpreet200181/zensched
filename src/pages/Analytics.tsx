@@ -1,9 +1,9 @@
-
 import AppNav from "@/components/AppNav";
 import AnalyticsChart from "@/components/AnalyticsChart";
 import AnalyticsPie from "@/components/AnalyticsPie";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { CalendarSyncService } from '@/services/calendarSync';
 
 type DayPoint = { day: string; meetings: number; busyness: number };
 
@@ -36,6 +36,9 @@ export default function Analytics() {
           pie: [] as { name: string; value: number }[] 
         };
       }
+
+      // Ensure analytics reflect latest ICS changes
+      await CalendarSyncService.syncAllUserCalendars(sessionData.session.user.id);
 
       const { data: events } = await supabase
         .from("events")
@@ -77,6 +80,8 @@ export default function Analytics() {
 
       return { daySeries, pie };
     },
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
   });
 
   if (isLoading) {

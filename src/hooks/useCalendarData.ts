@@ -200,5 +200,8 @@ export function useCalendarData(selectedDate: Date = new Date()) {
         recommendations,
       };
     },
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
   });
 }
+
