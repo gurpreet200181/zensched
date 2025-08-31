@@ -73,7 +73,7 @@ const DailyNarrative = () => {
       const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
         body: {
           text: narrative,
-          voice: 'Sarah' // Using a friendly voice
+          voice: 'Sarah'
         }
       });
 
@@ -89,21 +89,33 @@ const DailyNarrative = () => {
         const audioUrl = URL.createObjectURL(audioBlob);
         const audioElement = new Audio(audioUrl);
         
+        // Set volume to ensure it's audible
+        audioElement.volume = 0.8;
+        
         audioElement.onended = () => {
           setIsPlaying(false);
           URL.revokeObjectURL(audioUrl);
         };
         
-        audioElement.onerror = () => {
+        audioElement.onerror = (e) => {
+          console.error('Audio playback error:', e);
           setIsPlaying(false);
           setIsLoading(false);
           URL.revokeObjectURL(audioUrl);
         };
 
+        audioElement.oncanplaythrough = async () => {
+          try {
+            await audioElement.play();
+            setIsPlaying(true);
+            setHasPlayed(true);
+          } catch (playError) {
+            console.error('Error playing audio:', playError);
+            setIsPlaying(false);
+          }
+        };
+
         setAudio(audioElement);
-        await audioElement.play();
-        setIsPlaying(true);
-        setHasPlayed(true);
       }
     } catch (error) {
       console.error('Error playing narrative:', error);
@@ -120,20 +132,16 @@ const DailyNarrative = () => {
     }
   };
 
-  // Auto-play on first load if user just logged in
+  // Auto-play immediately when data is available
   useEffect(() => {
-    if (todayData && !hasPlayed && !dataLoading) {
-      // Small delay to ensure the dashboard has loaded
-      const timer = setTimeout(() => {
-        playNarrative();
-      }, 1000);
-      
-      return () => clearTimeout(timer);
+    if (todayData && !hasPlayed && !dataLoading && !isLoading) {
+      console.log('Auto-playing daily narrative...');
+      playNarrative();
     }
-  }, [todayData, hasPlayed, dataLoading]);
+  }, [todayData, hasPlayed, dataLoading, isLoading]);
 
   if (dataLoading) {
-    return null; // Don't show until data is loaded
+    return null;
   }
 
   return (
@@ -142,7 +150,7 @@ const DailyNarrative = () => {
         <div>
           <h3 className="text-lg font-medium text-gray-700 mb-1">Daily Briefing</h3>
           <p className="text-sm text-gray-600">
-            {hasPlayed ? "Briefing complete" : "Get a spoken summary of your day"}
+            {isPlaying ? "Playing your daily briefing..." : hasPlayed ? "Briefing complete" : "Preparing your daily briefing..."}
           </p>
         </div>
         
