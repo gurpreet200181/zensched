@@ -20,17 +20,29 @@ const DailyNarrative = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [hasPlayedThisSession, setHasPlayedThisSession] = useState(false);
+  const [hasPlayedToday, setHasPlayedToday] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const narrative = useDailyNarrative(busynessScore, events, busyHours, freeHours);
 
+  // Check if we've already played today
+  useEffect(() => {
+    const today = new Date().toDateString();
+    const lastPlayedDate = localStorage.getItem('dailyNarrativeLastPlayed');
+    if (lastPlayedDate === today) {
+      setHasPlayedToday(true);
+    }
+  }, []);
+
   const generateAndPlayAudio = async () => {
-    if (isLoading || hasPlayedThisSession) return;
+    if (isLoading || hasPlayedToday || !narrative) return;
 
     setIsLoading(true);
+    setError(null);
+    
     try {
-      console.log('Generating daily narrative audio...');
+      console.log('Generating daily narrative audio...', narrative);
       
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: {
@@ -39,7 +51,17 @@ const DailyNarrative = ({
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Text-to-speech error:', error);
+        setError(error.message || 'Failed to generate audio');
+        return;
+      }
+
+      if (!data?.audioContent) {
+        console.error('No audio content received');
+        setError('No audio content received');
+        return;
+      }
 
       // Convert base64 to blob and create URL
       const audioBlob = new Blob(
@@ -54,34 +76,54 @@ const DailyNarrative = ({
       const audio = new Audio(url);
       audioRef.current = audio;
       
-      audio.onplay = () => setIsPlaying(true);
-      audio.onpause = () => setIsPlaying(false);
-      audio.onended = () => {
+      audio.onplay = () => {
+        console.log('Daily narrative started playing');
+        setIsPlaying(true);
+      };
+      
+      audio.onpause = () => {
+        console.log('Daily narrative paused');
         setIsPlaying(false);
-        setHasPlayedThisSession(true);
+      };
+      
+      audio.onended = () => {
+        console.log('Daily narrative finished playing');
+        setIsPlaying(false);
+        setHasPlayedToday(true);
+        // Mark as played today
+        const today = new Date().toDateString();
+        localStorage.setItem('dailyNarrativeLastPlayed', today);
+      };
+
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e);
+        setError('Failed to play audio');
+        setIsPlaying(false);
       };
 
       await audio.play();
-      console.log('Daily narrative playing automatically');
+      console.log('Daily narrative audio started successfully');
       
     } catch (error) {
       console.error('Error generating daily narrative:', error);
+      setError(error instanceof Error ? error.message : 'Unknown error occurred');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Auto-play on component mount (when user logs in and visits dashboard)
+  // Auto-play on component mount when conditions are met
   useEffect(() => {
-    if (!hasPlayedThisSession && !isLoading && events.length >= 0) {
-      // Small delay to let the dashboard load
+    if (!hasPlayedToday && !isLoading && narrative && events.length >= 0) {
+      console.log('Attempting to auto-play daily narrative');
+      // Small delay to let the dashboard fully load
       const timer = setTimeout(() => {
         generateAndPlayAudio();
-      }, 2000);
+      }, 1000);
       
       return () => clearTimeout(timer);
     }
-  }, [events.length, hasPlayedThisSession]);
+  }, [narrative, hasPlayedToday, events.length]);
 
   // Cleanup audio URL
   useEffect(() => {
@@ -89,10 +131,29 @@ const DailyNarrative = ({
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl);
       }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
     };
   }, [audioUrl]);
 
-  // Return null - no visible UI
+  // Show error message if there's an issue (for debugging)
+  if (error) {
+    console.error('Daily narrative error:', error);
+  }
+
+  // Return null - no visible UI, but log status for debugging
+  useEffect(() => {
+    if (isLoading) {
+      console.log('Daily narrative: Loading audio...');
+    } else if (isPlaying) {
+      console.log('Daily narrative: Playing...');
+    } else if (hasPlayedToday) {
+      console.log('Daily narrative: Already played today');
+    }
+  }, [isLoading, isPlaying, hasPlayedToday]);
+
   return null;
 };
 
