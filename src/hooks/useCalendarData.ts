@@ -32,6 +32,64 @@ function minutesBetween(a: Date, b: Date) {
   return Math.max(0, Math.round((b.getTime() - a.getTime()) / 60000));
 }
 
+function generateRecommendations(busynessScore: number, events: CalendarEvent[]) {
+  const recommendations = [];
+  
+  if (busynessScore > 80) {
+    recommendations.push({
+      id: '1',
+      title: 'Add buffer time between meetings',
+      reason: 'Your schedule is very packed. Adding 15-minute buffers can reduce stress and improve focus.',
+      actionType: 'ADD_BUFFER' as const,
+      confidence: 95
+    });
+    
+    recommendations.push({
+      id: '2',
+      title: 'Consider rescheduling non-critical meetings',
+      reason: 'Moving some meetings to less busy days can create breathing room.',
+      actionType: 'RESCHEDULE_NOTE' as const,
+      confidence: 88
+    });
+  }
+  
+  if (busynessScore > 60) {
+    const hasBreaks = events.some(e => e.classification === 'break');
+    if (!hasBreaks) {
+      recommendations.push({
+        id: '3',
+        title: 'Schedule a wellness break',
+        reason: 'No breaks detected. A 15-30 minute break can improve productivity.',
+        actionType: 'ADD_BUFFER' as const,
+        confidence: 92
+      });
+    }
+    
+    const focusTime = events.filter(e => e.classification === 'focus').length;
+    if (focusTime === 0) {
+      recommendations.push({
+        id: '4',
+        title: 'Block time for deep work',
+        reason: 'No dedicated focus time found. Consider blocking 2+ hours for important tasks.',
+        actionType: 'BLOCK_FOCUS' as const,
+        confidence: 85
+      });
+    }
+  }
+  
+  if (busynessScore > 40) {
+    recommendations.push({
+      id: '5',
+      title: 'Prepare for tomorrow',
+      reason: 'Set aside 10 minutes to review tomorrow\'s agenda and priorities.',
+      actionType: 'PREP_NOTE' as const,
+      confidence: 78
+    });
+  }
+  
+  return recommendations;
+}
+
 export function useCalendarData(selectedDate: Date = new Date()) {
   const [date] = useState(selectedDate);
 
@@ -51,6 +109,7 @@ export function useCalendarData(selectedDate: Date = new Date()) {
           busyHours: 0,
           freeHours: 8, // Default work day
           totalEvents: 0,
+          recommendations: [],
         };
       }
 
@@ -95,23 +154,41 @@ export function useCalendarData(selectedDate: Date = new Date()) {
         };
       });
 
-      // Calculate metrics
+      // Calculate metrics - breaks count as free time, not busy time
       const totalMinutes = (events || []).reduce((acc: number, e: any) => {
+        const classification = e.classification || 'meeting';
+        // Don't count breaks as busy time
+        if (classification === 'break') return acc;
         return acc + minutesBetween(new Date(e.start_time), new Date(e.end_time));
       }, 0);
 
       const busyHours = Math.round((totalMinutes / 60) * 10) / 10;
       const workDayHours = 8; // Assuming 8-hour work day
-      const freeHours = Math.max(0, workDayHours - busyHours);
       
-      // Calculate busyness score (0-100)
+      // Add break time to free hours
+      const breakMinutes = (events || []).reduce((acc: number, e: any) => {
+        const classification = e.classification || 'meeting';
+        if (classification === 'break') {
+          return acc + minutesBetween(new Date(e.start_time), new Date(e.end_time));
+        }
+        return acc;
+      }, 0);
+      
+      const breakHours = Math.round((breakMinutes / 60) * 10) / 10;
+      const freeHours = Math.max(0, workDayHours - busyHours + breakHours);
+      
+      // Calculate busyness score (0-100) - breaks don't increase busyness
       const busynessScore = Math.min(100, Math.round((busyHours / workDayHours) * 100));
+
+      // Generate AI recommendations
+      const recommendations = generateRecommendations(busynessScore, calendarEvents);
 
       console.log('Calendar data processed:', {
         totalEvents: calendarEvents.length,
         busyHours,
         freeHours,
-        busynessScore
+        busynessScore,
+        breakHours
       });
 
       return {
@@ -120,6 +197,7 @@ export function useCalendarData(selectedDate: Date = new Date()) {
         busyHours,
         freeHours,
         totalEvents: calendarEvents.length,
+        recommendations,
       };
     },
   });

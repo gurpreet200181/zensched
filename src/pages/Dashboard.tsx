@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import BusynessScore from '@/components/BusynessScore';
 import EventList from '@/components/EventList';
+import WellnessRecommendations from '@/components/WellnessRecommendations';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -38,8 +39,39 @@ const Dashboard = () => {
         {/* Busyness Score at the top */}
         <BusynessScore score={data?.busynessScore || 0} />
 
+        {/* Busy/Free Hours Cards */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <Clock className="h-8 w-8 text-orange-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Busy Hours</p>
+                  <p className="text-2xl font-bold">
+                    {isLoading ? '—' : `${data?.busyHours || 0}h`}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <Clock className="h-8 w-8 text-green-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Free Hours</p>
+                  <p className="text-2xl font-bold">
+                    {isLoading ? '—' : `${data?.freeHours || 0}h`}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="grid lg:grid-cols-4 gap-6">
-          {/* Calendar Control - Now collapsible */}
+          {/* Calendar Control - Collapsible */}
           <div className="lg:col-span-1">
             <Collapsible open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
               <CollapsibleTrigger asChild>
@@ -73,36 +105,14 @@ const Dashboard = () => {
 
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Busy/Free Hours Cards */}
-            <div className="grid md:grid-cols-2 gap-4">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4">
-                    <Clock className="h-8 w-8 text-orange-500" />
-                    <div>
-                      <p className="text-sm text-gray-600">Busy Hours</p>
-                      <p className="text-2xl font-bold">
-                        {isLoading ? '—' : `${data?.busyHours || 0}h`}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4">
-                    <Clock className="h-8 w-8 text-green-500" />
-                    <div>
-                      <p className="text-sm text-gray-600">Free Hours</p>
-                      <p className="text-2xl font-bold">
-                        {isLoading ? '—' : `${data?.freeHours || 0}h`}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            {/* AI Wellness Recommendations */}
+            {!isLoading && !error && data?.recommendations && (
+              <WellnessRecommendations 
+                recommendations={data.recommendations}
+                summary={`Based on your ${data.busynessScore}% busyness score, here are personalized suggestions to optimize your schedule and reduce stress.`}
+                aiEnabled={true}
+              />
+            )}
 
             {/* Events List */}
             {isLoading && (
