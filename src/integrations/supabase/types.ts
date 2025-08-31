@@ -14,7 +14,167 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      busyness_scores: {
+        Row: {
+          created_at: string
+          date: string
+          focus_time_minutes: number | null
+          id: string
+          meeting_count: number | null
+          score: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          focus_time_minutes?: number | null
+          id?: string
+          meeting_count?: number | null
+          score: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          focus_time_minutes?: number | null
+          id?: string
+          meeting_count?: number | null
+          score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      calendar_integrations: {
+        Row: {
+          access_token: string | null
+          calendar_url: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          last_sync: string | null
+          provider: string
+          refresh_token: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          calendar_url?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_sync?: string | null
+          provider: string
+          refresh_token?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          calendar_url?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_sync?: string | null
+          provider?: string
+          refresh_token?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      events: {
+        Row: {
+          attendees_count: number | null
+          calendar_integration_id: string | null
+          classification: string | null
+          created_at: string
+          description: string | null
+          end_time: string
+          external_event_id: string | null
+          id: string
+          location: string | null
+          start_time: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attendees_count?: number | null
+          calendar_integration_id?: string | null
+          classification?: string | null
+          created_at?: string
+          description?: string | null
+          end_time: string
+          external_event_id?: string | null
+          id?: string
+          location?: string | null
+          start_time: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attendees_count?: number | null
+          calendar_integration_id?: string | null
+          classification?: string | null
+          created_at?: string
+          description?: string | null
+          end_time?: string
+          external_event_id?: string | null
+          id?: string
+          location?: string | null
+          start_time?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_calendar_integration_id_fkey"
+            columns: ["calendar_integration_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          timezone: string | null
+          updated_at: string
+          user_id: string
+          work_end_time: string | null
+          work_start_time: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          timezone?: string | null
+          updated_at?: string
+          user_id: string
+          work_end_time?: string | null
+          work_start_time?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          timezone?: string | null
+          updated_at?: string
+          user_id?: string
+          work_end_time?: string | null
+          work_start_time?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
