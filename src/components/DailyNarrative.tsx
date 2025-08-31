@@ -10,6 +10,7 @@ const DailyNarrative = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { data: todayData, isLoading: dataLoading } = useTodayData();
 
   const generateNarrative = (data: any) => {
@@ -66,6 +67,7 @@ const DailyNarrative = () => {
     if (!todayData || isLoading) return;
 
     setIsLoading(true);
+    setError(null);
     
     try {
       const narrative = generateNarrative(todayData);
@@ -77,7 +79,12 @@ const DailyNarrative = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('TTS API Error:', error);
+        setError('Voice synthesis temporarily unavailable');
+        setIsLoading(false);
+        return;
+      }
 
       if (data?.audioContent) {
         // Create audio from base64
@@ -101,6 +108,7 @@ const DailyNarrative = () => {
           console.error('Audio playback error:', e);
           setIsPlaying(false);
           setIsLoading(false);
+          setError('Audio playback failed');
           URL.revokeObjectURL(audioUrl);
         };
 
@@ -109,17 +117,23 @@ const DailyNarrative = () => {
             await audioElement.play();
             setIsPlaying(true);
             setHasPlayed(true);
+            setIsLoading(false);
           } catch (playError) {
             console.error('Error playing audio:', playError);
             setIsPlaying(false);
+            setIsLoading(false);
+            setError('Could not play audio - check browser permissions');
           }
         };
 
         setAudio(audioElement);
+      } else {
+        setError('No audio content received');
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('Error playing narrative:', error);
-    } finally {
+      setError('Failed to generate voice briefing');
       setIsLoading(false);
     }
   };
@@ -134,11 +148,11 @@ const DailyNarrative = () => {
 
   // Auto-play immediately when data is available
   useEffect(() => {
-    if (todayData && !hasPlayed && !dataLoading && !isLoading) {
+    if (todayData && !hasPlayed && !dataLoading && !isLoading && !error) {
       console.log('Auto-playing daily narrative...');
       playNarrative();
     }
-  }, [todayData, hasPlayed, dataLoading, isLoading]);
+  }, [todayData, hasPlayed, dataLoading, isLoading, error]);
 
   if (dataLoading) {
     return null;
@@ -150,7 +164,17 @@ const DailyNarrative = () => {
         <div>
           <h3 className="text-lg font-medium text-gray-700 mb-1">Daily Briefing</h3>
           <p className="text-sm text-gray-600">
-            {isPlaying ? "Playing your daily briefing..." : hasPlayed ? "Briefing complete" : "Preparing your daily briefing..."}
+            {error ? (
+              <span className="text-red-600">{error}</span>
+            ) : isPlaying ? (
+              "Playing your daily briefing..."
+            ) : hasPlayed ? (
+              "Briefing complete"
+            ) : isLoading ? (
+              "Preparing your daily briefing..."
+            ) : (
+              "Ready to play your daily briefing"
+            )}
           </p>
         </div>
         
@@ -166,6 +190,7 @@ const DailyNarrative = () => {
               variant="outline"
               size="sm"
               className="flex items-center gap-2"
+              disabled={!!error && !hasPlayed}
             >
               {isPlaying ? (
                 <>
