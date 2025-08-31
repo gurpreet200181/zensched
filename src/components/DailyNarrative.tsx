@@ -47,18 +47,26 @@ const DailyNarrative = ({
       return;
     }
 
-    // Prevent multiple simultaneous requests
-    if (audioRef.current && !audioRef.current.paused) {
-      console.log('Audio already playing, stopping current playback');
-      audioRef.current.pause();
-    }
-
+    console.log('Generating audio for narrative:', narrative.substring(0, 100) + '...');
     setIsLoading(true);
     setError(null);
     
     try {
-      console.log('Generating daily narrative audio...', narrative.substring(0, 100) + '...');
+      // Clean up previous audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.removeEventListener('play', () => {});
+        audioRef.current.removeEventListener('pause', () => {});
+        audioRef.current.removeEventListener('ended', () => {});
+        audioRef.current.removeEventListener('error', () => {});
+      }
       
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+        setAudioUrl(null);
+      }
+      
+      console.log('Calling text-to-speech function...');
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: {
           text: narrative,
@@ -68,76 +76,117 @@ const DailyNarrative = ({
 
       if (error) {
         console.error('Text-to-speech error:', error);
-        setError(error.message || 'Failed to generate audio');
+        setError(`Audio generation failed: ${error.message || 'Unknown error'}`);
         setShowManualControls(true);
         return;
       }
 
       if (!data?.audioContent) {
-        console.error('No audio content received');
-        setError('No audio content received');
+        console.error('No audio content received from API');
+        setError('No audio content received from server');
         setShowManualControls(true);
         return;
       }
 
-      // Convert base64 to blob and create URL
-      const audioBlob = new Blob(
-        [Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))],
-        { type: 'audio/mpeg' }
-      );
-      
-      const url = URL.createObjectURL(audioBlob);
-      setAudioUrl(url);
+      console.log('Received audio content, length:', data.audioContent.length);
 
-      // Create and configure audio
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      
-      audio.onplay = () => {
-        console.log('Daily narrative started playing');
-        setIsPlaying(true);
-        setError(null);
-      };
-      
-      audio.onpause = () => {
-        console.log('Daily narrative paused');
-        setIsPlaying(false);
-      };
-      
-      audio.onended = () => {
-        console.log('Daily narrative finished playing');
-        setIsPlaying(false);
-        setHasPlayedToday(true);
-        // Mark as played today
-        const today = new Date().toDateString();
-        localStorage.setItem('dailyNarrativeLastPlayed', today);
-      };
-
-      audio.onerror = (e) => {
-        console.error('Audio playback error:', e);
-        setError('Failed to play audio');
-        setIsPlaying(false);
-        setShowManualControls(true);
-      };
-
-      // Try to play audio
+      // Convert base64 to blob with proper error handling
       try {
-        await audio.play();
-        console.log('Daily narrative audio started successfully');
-      } catch (playError) {
-        console.error('Audio play failed:', playError);
-        if (!userInitiated) {
-          // If auto-play failed, show manual controls
-          setError('Auto-play blocked by browser. Click to play manually.');
-          setShowManualControls(true);
-        } else {
-          setError('Failed to play audio. Please try again.');
+        const binaryString = atob(data.audioContent);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
         }
+        
+        const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
+        console.log('Created audio blob, size:', audioBlob.size, 'bytes');
+        
+        if (audioBlob.size === 0) {
+          throw new Error('Audio blob is empty');
+        }
+        
+        const url = URL.createObjectURL(audioBlob);
+        setAudioUrl(url);
+
+        // Create and configure audio element
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        
+        // Set volume to ensure it's audible
+        audio.volume = 0.8;
+        
+        // Add event listeners
+        audio.addEventListener('loadstart', () => {
+          console.log('Audio loading started');
+        });
+        
+        audio.addEventListener('canplay', () => {
+          console.log('Audio can start playing');
+        });
+        
+        audio.addEventListener('play', () => {
+          console.log('Audio started playing');
+          setIsPlaying(true);
+          setError(null);
+        });
+        
+        audio.addEventListener('pause', () => {
+          console.log('Audio paused');
+          setIsPlaying(false);
+        });
+        
+        audio.addEventListener('ended', () => {
+          console.log('Audio finished playing');
+          setIsPlaying(false);
+          setHasPlayedToday(true);
+          const today = new Date().toDateString();
+          localStorage.setItem('dailyNarrativeLastPlayed', today);
+        });
+
+        audio.addEventListener('error', (e) => {
+          console.error('Audio playback error:', e);
+          const errorMsg = audio.error ? `Audio error: ${audio.error.message}` : 'Audio playback failed';
+          setError(errorMsg);
+          setIsPlaying(false);
+          setShowManualControls(true);
+        });
+
+        // Load the audio
+        console.log('Loading audio...');
+        audio.load();
+        
+        // Wait for audio to be ready before trying to play
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Audio loading timeout'));
+          }, 10000);
+          
+          audio.addEventListener('canplaythrough', () => {
+            clearTimeout(timeout);
+            resolve(null);
+          }, { once: true });
+          
+          audio.addEventListener('error', () => {
+            clearTimeout(timeout);
+            reject(new Error('Audio loading failed'));
+          }, { once: true });
+        });
+
+        // Try to play the audio
+        console.log('Attempting to play audio...');
+        await audio.play();
+        console.log('Audio play successful');
+        
+      } catch (conversionError) {
+        console.error('Audio conversion error:', conversionError);
+        setError(`Audio processing failed: ${conversionError.message}`);
+        setShowManualControls(true);
+        return;
       }
       
     } catch (error) {
       console.error('Error generating daily narrative:', error);
-      setError(error instanceof Error ? error.message : 'Unknown error occurred');
+      setError(error instanceof Error ? error.message : 'Failed to generate audio');
       setShowManualControls(true);
     } finally {
       setIsLoading(false);
@@ -147,14 +196,17 @@ const DailyNarrative = ({
   const togglePlayback = () => {
     if (audioRef.current) {
       if (isPlaying) {
+        console.log('Pausing audio...');
         audioRef.current.pause();
       } else {
+        console.log('Resuming audio playback...');
         audioRef.current.play().catch(error => {
-          console.error('Play failed:', error);
-          setError('Failed to play audio');
+          console.error('Resume play failed:', error);
+          setError('Failed to resume audio playback');
         });
       }
     } else {
+      console.log('No audio available, generating new audio...');
       generateAndPlayAudio(true);
     }
   };
@@ -162,18 +214,19 @@ const DailyNarrative = ({
   // Auto-play attempt on component mount
   useEffect(() => {
     if (!hasPlayedToday && !isLoading && narrative && events.length >= 0 && !autoPlayAttempted) {
-      console.log('Attempting to auto-play daily narrative');
+      console.log('Setting up auto-play attempt...');
       setAutoPlayAttempted(true);
       
       // Delay auto-play to let the dashboard fully load
       const timer = setTimeout(() => {
+        console.log('Attempting auto-play...');
         generateAndPlayAudio(false);
       }, 2000);
       
       // Show manual controls after 5 seconds if auto-play hasn't worked
       const fallbackTimer = setTimeout(() => {
         if (!isPlaying && !hasPlayedToday) {
-          console.log('Auto-play failed, showing manual controls');
+          console.log('Auto-play failed after 5 seconds, showing manual controls');
           setShowManualControls(true);
         }
       }, 5000);
@@ -183,7 +236,7 @@ const DailyNarrative = ({
         clearTimeout(fallbackTimer);
       };
     }
-  }, [narrative, hasPlayedToday, events.length, autoPlayAttempted]);
+  }, [narrative, hasPlayedToday, events.length, autoPlayAttempted, isPlaying]);
 
   // Cleanup audio URL
   useEffect(() => {
@@ -193,6 +246,10 @@ const DailyNarrative = ({
       }
       if (audioRef.current) {
         audioRef.current.pause();
+        audioRef.current.removeEventListener('play', () => {});
+        audioRef.current.removeEventListener('pause', () => {});
+        audioRef.current.removeEventListener('ended', () => {});
+        audioRef.current.removeEventListener('error', () => {});
         audioRef.current = null;
       }
     };
