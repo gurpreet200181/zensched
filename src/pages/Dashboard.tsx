@@ -4,16 +4,19 @@ import { Calendar } from '@/components/ui/calendar';
 import BusynessScore from '@/components/BusynessScore';
 import EventList from '@/components/EventList';
 import WellnessRecommendations from '@/components/WellnessRecommendations';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Clock, Calendar as CalendarIcon, Activity, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { useCalendarData } from '@/hooks/useCalendarData';
+import SyncStatusBadge from '@/components/SyncStatusBadge';
+import { useLiveSync } from '@/hooks/useLiveSync';
 
 const Dashboard = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const { data, isLoading, error } = useCalendarData(selectedDate);
+  const { statusLabel, isPushActive } = useLiveSync();
 
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
@@ -24,15 +27,20 @@ const Dashboard = () => {
   return (
     <div className="container mx-auto px-6 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Dashboard</h1>
-        <p className="text-gray-600">
-          {selectedDate.toLocaleDateString(undefined, {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })}
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Dashboard</h1>
+            <p className="text-gray-600">
+              {selectedDate.toLocaleDateString(undefined, {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </p>
+          </div>
+          <SyncStatusBadge status={statusLabel} isPushActive={isPushActive} />
+        </div>
       </div>
 
       <div className="space-y-6">
@@ -142,3 +150,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

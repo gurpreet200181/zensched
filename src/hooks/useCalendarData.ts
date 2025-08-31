@@ -1,8 +1,6 @@
-
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { CalendarSyncService } from '@/services/calendarSync';
 
 export type CalendarEvent = {
   id: string;
@@ -113,17 +111,6 @@ export function useCalendarData(selectedDate: Date = new Date()) {
         };
       }
 
-      console.log('User session found, syncing calendars...');
-
-      // Trigger calendar sync for the current user
-      try {
-        await CalendarSyncService.syncAllUserCalendars(sessionData.session.user.id);
-        console.log('Calendar sync completed');
-      } catch (error) {
-        console.error('Error syncing calendars:', error);
-        // Continue with loading existing events even if sync fails
-      }
-
       // Load events for the selected date
       console.log('Loading events from database...');
       const { data: events, error: eventsError } = await supabase
@@ -200,8 +187,5 @@ export function useCalendarData(selectedDate: Date = new Date()) {
         recommendations,
       };
     },
-    refetchInterval: 5000,
-    refetchIntervalInBackground: true,
   });
 }
-
