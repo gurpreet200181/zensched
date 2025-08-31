@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -18,6 +18,7 @@ const queryClient = new QueryClient();
 
 function AuthRouteEffects() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Redirect to dashboard on successful sign-in
@@ -33,7 +34,7 @@ function AuthRouteEffects() {
 
     // Also check current session on mount
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
+      if (data.session && location.pathname === "/") {
         navigate("/dashboard", { replace: true });
       }
     });
@@ -41,7 +42,7 @@ function AuthRouteEffects() {
     return () => {
       sub.subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   return null;
 }
