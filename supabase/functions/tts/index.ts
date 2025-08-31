@@ -72,8 +72,13 @@ serve(async (req) => {
     const url = new URL(req.url);
     const pathname = url.pathname;
 
-    // Health check endpoint
-    if (pathname === '/health' && req.method === 'GET') {
+    // Normalize route by using the last path segment (supports /tts/health, /health, etc.)
+    const segments = pathname.split('/').filter(Boolean);
+    const lastSegment = segments[segments.length - 1] || '';
+    console.log(`[${requestId}] Resolved route segment: "${lastSegment}"`);
+
+    // Health check endpoint (accept POST or GET from supabase.functions.invoke)
+    if (lastSegment === 'health' && (req.method === 'GET' || req.method === 'POST')) {
       console.log(`[${requestId}] Health check - API key present: ${!!elevenLabsApiKey}`);
       return new Response(
         JSON.stringify({ ok: true, hasKey: !!elevenLabsApiKey }),
@@ -81,8 +86,8 @@ serve(async (req) => {
       );
     }
 
-    // Get voices endpoint
-    if (pathname === '/voices' && req.method === 'GET') {
+    // Get voices endpoint (accept POST or GET from supabase.functions.invoke)
+    if (lastSegment === 'voices' && (req.method === 'GET' || req.method === 'POST')) {
       // Check cache
       if (voicesCache && (Date.now() - voicesCache.timestamp) < CACHE_DURATION) {
         console.log(`[${requestId}] Returning cached voices (${voicesCache.data.length} voices)`);
@@ -273,7 +278,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ error: 'Method not allowed', status: 405 }),
+      JSON.stringify({ error: `Method not allowed: ${req.method} ${pathname}`, status: 405 }),
       { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
