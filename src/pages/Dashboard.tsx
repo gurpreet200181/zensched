@@ -1,131 +1,130 @@
 
-import AppNav from "@/components/AppNav";
-import BusynessScore from "@/components/BusynessScore";
-import EventList from "@/components/EventList";
-import AnalyticsChart from "@/components/AnalyticsChart";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useTodayData } from "@/hooks/useTodayData";
+import { useState } from 'react';
+import { Calendar } from '@/components/ui/calendar';
+import BusynessScore from '@/components/BusynessScore';
+import EventList from '@/components/EventList';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Clock, Calendar as CalendarIcon, Activity } from 'lucide-react';
+import { useCalendarData } from '@/hooks/useCalendarData';
 
 const Dashboard = () => {
-  const { data, isLoading, error } = useTodayData();
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const { data, isLoading, error } = useCalendarData(selectedDate);
 
-  const chartData = [
-    { day: "Mon", meetings: 4, busyness: 65 },
-    { day: "Tue", meetings: 6, busyness: 78 },
-    { day: "Wed", meetings: 3, busyness: 45 },
-    { day: "Thu", meetings: 5, busyness: 72 },
-    { day: "Fri", meetings: 2, busyness: 35 },
-  ];
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      setSelectedDate(date);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-wellness-gradient">
-      <AppNav />
+    <div className="container mx-auto px-6 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">Dashboard</h1>
+        <p className="text-gray-600">
+          {selectedDate.toLocaleDateString(undefined, {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })}
+        </p>
+      </div>
 
-      <div className="container mx-auto px-6 py-8">
-        {/* Date Navigation */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-800">Today</h2>
-              <p className="text-gray-600">
-                {new Date().toLocaleDateString(undefined, {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </p>
-            </div>
-            <Button variant="ghost" size="sm">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+      <div className="grid lg:grid-cols-4 gap-6">
+        {/* Calendar Control */}
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CalendarIcon className="h-5 w-5" />
+              Calendar
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={handleDateSelect}
+              className="w-full"
+              disabled={(date) => date > new Date()}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Main Content */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* Metrics Cards */}
+          <div className="grid md:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <Activity className="h-8 w-8 text-primary" />
+                  <div>
+                    <p className="text-sm text-gray-600">Busyness Score</p>
+                    <p className="text-2xl font-bold">
+                      {isLoading ? '—' : `${data?.busynessScore || 0}%`}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <Clock className="h-8 w-8 text-orange-500" />
+                  <div>
+                    <p className="text-sm text-gray-600">Busy Hours</p>
+                    <p className="text-2xl font-bold">
+                      {isLoading ? '—' : `${data?.busyHours || 0}h`}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <Clock className="h-8 w-8 text-green-500" />
+                  <div>
+                    <p className="text-sm text-gray-600">Free Hours</p>
+                    <p className="text-2xl font-bold">
+                      {isLoading ? '—' : `${data?.freeHours || 0}h`}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            Connected to Calendar
-          </div>
-        </div>
+          {/* Busyness Score Detail */}
+          <BusynessScore score={data?.busynessScore || 0} />
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <BusynessScore score={data?.score || 0} />
-            {isLoading && (
-              <div className="wellness-card p-6">
+          {/* Events List */}
+          {isLoading && (
+            <Card>
+              <CardContent className="p-6">
                 <p className="text-gray-600">Loading your events…</p>
-              </div>
-            )}
-            {error && (
-              <div className="wellness-card p-6">
+              </CardContent>
+            </Card>
+          )}
+          
+          {error && (
+            <Card>
+              <CardContent className="p-6">
                 <p className="text-red-600">Failed to load events.</p>
-              </div>
-            )}
-            {!isLoading && !error && <EventList events={data?.events || []} />}
-
-            {/* Analytics Section */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <AnalyticsChart data={chartData} type="bar" />
-              <AnalyticsChart data={chartData} type="line" />
-            </div>
-          </div>
-
-          <div className="space-y-8">
-            <div className="wellness-card p-6">
-              <h3 className="text-lg font-medium text-gray-700 mb-4">
-                Wellness Summary
-              </h3>
-              <p className="text-sm text-gray-700">
-                {data?.summary || "Sign in to see your personalized summary."}
-              </p>
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div className="p-3 rounded-lg bg-white/60">
-                  <div className="text-xs text-gray-500">Meetings</div>
-                  <div className="text-lg font-semibold">
-                    {data?.meetingCount ?? 0}
-                  </div>
-                </div>
-                <div className="p-3 rounded-lg bg-white/60">
-                  <div className="text-xs text-gray-500">Focus mins</div>
-                  <div className="text-lg font-semibold">
-                    {data?.focusMinutes ?? 0}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="wellness-card p-6">
-              <h3 className="text-lg font-medium text-gray-700 mb-4">
-                Week Overview
-              </h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Total Meetings</span>
-                  <span className="font-semibold">—</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Meeting Hours</span>
-                  <span className="font-semibold">—</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Avg Busyness</span>
-                  <span className="font-semibold">—</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">After Hours</span>
-                  <span className="font-semibold text-orange-600">—</span>
-                </div>
-              </div>
-            </div>
-          </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {!isLoading && !error && (
+            <EventList events={data?.events || []} />
+          )}
         </div>
-      </div>      
+      </div>
     </div>
   );
 };
 
 export default Dashboard;
-
