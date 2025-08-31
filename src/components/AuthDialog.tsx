@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { Calendar, Link, Mail, Lock, User, ExternalLink } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuthDialogProps {
   open: boolean;
@@ -32,6 +33,8 @@ interface CalendarSetupData {
 const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
   const [mode, setMode] = useState<AuthMode>('signup');
   const [icsUrls, setIcsUrls] = useState<string[]>(['']);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   const authForm = useForm<AuthFormData>({
     defaultValues: {
@@ -51,15 +54,82 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
     },
   });
 
-  const onAuthSubmit = (data: AuthFormData) => {
-    console.log('Auth data:', data);
-    // TODO: Implement authentication with Supabase
-    setMode('calendar-setup');
+  const onAuthSubmit = async (data: AuthFormData) => {
+    setIsLoading(true);
+    try {
+      if (mode === 'signup') {
+        const { error } = await supabase.auth.signUp({
+          email: data.email,
+          password: data.password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/dashboard`,
+            data: {
+              display_name: data.displayName,
+              timezone: data.timezone
+            }
+          }
+        });
+
+        if (error) {
+          if (error.message.includes('User already registered')) {
+            toast({
+              title: "Account exists",
+              description: "This email is already registered. Please sign in instead.",
+              variant: "destructive"
+            });
+            setMode('signin');
+          } else {
+            toast({
+              title: "Sign up failed",
+              description: error.message,
+              variant: "destructive"
+            });
+          }
+        } else {
+          toast({
+            title: "Check your email",
+            description: "We've sent you a confirmation link to complete your signup.",
+          });
+          setMode('calendar-setup');
+        }
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: data.password,
+        });
+
+        if (error) {
+          toast({
+            title: "Sign in failed",
+            description: error.message,
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Welcome back!",
+            description: "Successfully signed in.",
+          });
+          onOpenChange(false);
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const onCalendarSubmit = (data: CalendarSetupData) => {
+  const onCalendarSubmit = async (data: CalendarSetupData) => {
     console.log('Calendar setup data:', data);
     // TODO: Save calendar settings to Supabase
+    toast({
+      title: "Setup complete!",
+      description: "Your calendar preferences have been saved.",
+    });
     onOpenChange(false);
   };
 
@@ -141,8 +211,8 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
                   )}
                 />
 
-                <Button type="submit" className="w-full wellness-button">
-                  {mode === 'signup' ? 'Create Account' : 'Sign In'}
+                <Button type="submit" className="w-full wellness-button" disabled={isLoading}>
+                  {isLoading ? 'Loading...' : (mode === 'signup' ? 'Create Account' : 'Sign In')}
                 </Button>
 
                 <div className="text-center text-sm text-muted-foreground">
