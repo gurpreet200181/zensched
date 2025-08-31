@@ -173,29 +173,24 @@ const ElevenLabsTTSTest = () => {
 
       console.log("[TTS] Received data type:", data ? Object.prototype.toString.call(data) : 'null');
 
+      // Handle the response - it should be an ArrayBuffer
+      let audioBlob: Blob;
+      
       if (data instanceof ArrayBuffer) {
-        const audioBlob = new Blob([data], { type: 'audio/mpeg' });
-        const url = URL.createObjectURL(audioBlob);
-        setAudioUrl(url);
-
-        toast({
-          title: "Success",
-          description: "Speech generated successfully!",
-        });
-      } else if (typeof data === 'string' && data.startsWith('ID3')) {
-        // Handle case where audio data comes as a binary string
+        console.log("[TTS] Creating blob from ArrayBuffer, size:", data.byteLength);
+        audioBlob = new Blob([data], { type: 'audio/mpeg' });
+      } else if (typeof data === 'string') {
+        // Handle case where data comes as a binary string
+        console.log("[TTS] Converting string to ArrayBuffer, length:", data.length);
         const bytes = new Uint8Array(data.length);
         for (let i = 0; i < data.length; i++) {
           bytes[i] = data.charCodeAt(i);
         }
-        const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
-        const url = URL.createObjectURL(audioBlob);
-        setAudioUrl(url);
-
-        toast({
-          title: "Success",
-          description: "Speech generated successfully!",
-        });
+        audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
+      } else if (data && typeof data === 'object' && data.constructor === Object) {
+        // Handle case where data is wrapped in an object
+        console.log("[TTS] Data is object, keys:", Object.keys(data));
+        throw new Error("Received object instead of audio data");
       } else {
         console.error('Unexpected response format:', data);
         toast({
@@ -203,7 +198,30 @@ const ElevenLabsTTSTest = () => {
           description: "Unexpected response format from server",
           variant: "destructive",
         });
+        return;
       }
+
+      // Create blob URL and test it
+      const url = URL.createObjectURL(audioBlob);
+      console.log("[TTS] Created blob URL:", url, "blob size:", audioBlob.size);
+      
+      // Verify the blob is valid
+      if (audioBlob.size === 0) {
+        console.error("[TTS] Empty audio blob created");
+        toast({
+          title: "Error",
+          description: "Empty audio file generated",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setAudioUrl(url);
+
+      toast({
+        title: "Success",
+        description: "Speech generated successfully!",
+      });
     } catch (err) {
       console.error('Failed to generate speech:', err);
       toast({
