@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import BusynessScore from '@/components/BusynessScore';
@@ -10,7 +11,11 @@ import ElevenLabsTTSTest from '@/components/ElevenLabsTTSTest';
 
 const Dashboard = () => {
   const [busynessScore, setBusynessScore] = useState(0);
-  const { events, isLoading, error } = useCalendarData();
+  const { data, isLoading, error } = useCalendarData();
+
+  // Extract data with defaults
+  const events = data?.events || [];
+  const recommendations = data?.recommendations || [];
 
   useEffect(() => {
     if (events && events.length > 0) {
@@ -24,8 +29,8 @@ const Dashboard = () => {
 
   // Calculate busy periods
   const busyPeriods = events?.map(event => ({
-    start: new Date(event.start),
-    end: new Date(event.end),
+    start: new Date(`2024-01-01T${event.startTime}`),
+    end: new Date(`2024-01-01T${event.endTime}`),
   })) || [];
 
   if (isLoading) {
@@ -41,7 +46,7 @@ const Dashboard = () => {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <h2 className="text-xl font-semibold text-red-600 mb-2">Error loading dashboard</h2>
-          <p className="text-gray-600">{error}</p>
+          <p className="text-gray-600">{error.message}</p>
         </div>
       </div>
     );
@@ -63,7 +68,7 @@ const Dashboard = () => {
           <h1 className="text-3xl font-bold text-gray-900">Your Wellness Dashboard</h1>
           <p className="text-gray-600 mt-1">Today's schedule insights and recommendations</p>
         </div>
-        <SyncStatusBadge />
+        <SyncStatusBadge status="connected" />
       </div>
 
       {/* Main Content Grid */}
@@ -73,9 +78,6 @@ const Dashboard = () => {
           {/* Busyness Score */}
           <BusynessScore 
             score={busynessScore}
-            busyHours={busyPeriods.length}
-            freeHours={24 - busyPeriods.length}
-            totalEvents={events.length}
           />
 
           {/* Today's Events */}
@@ -85,9 +87,7 @@ const Dashboard = () => {
         {/* Right Column - Recommendations */}
         <div className="space-y-6">
           <WellnessRecommendations 
-            busynessScore={busynessScore}
-            events={events}
-            busyPeriods={busyPeriods}
+            recommendations={recommendations}
           />
         </div>
       </div>
