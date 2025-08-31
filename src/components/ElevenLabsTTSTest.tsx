@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -135,7 +134,7 @@ const ElevenLabsTTSTest = () => {
     }
 
     setIsGenerating(true);
-    
+
     try {
       // Clean up previous audio URL
       if (audioUrl) {
@@ -143,18 +142,20 @@ const ElevenLabsTTSTest = () => {
         setAudioUrl(null);
       }
 
+      const payload = {
+        text: trimmedText,
+        voiceId: settings.voiceId || '9BWtsMINqrJLrRacOk9x',
+        stability: settings.stability,
+        similarityBoost: settings.similarityBoost,
+        style: settings.style,
+        useSpeakerBoost: settings.useSpeakerBoost,
+      };
+
+      console.log("[TTS] Invoking function with payload:", payload);
+
       const { data, error } = await supabase.functions.invoke('tts', {
-        body: {
-          text: trimmedText,
-          voiceId: settings.voiceId,
-          stability: settings.stability,
-          similarityBoost: settings.similarityBoost,
-          style: settings.style,
-          useSpeakerBoost: settings.useSpeakerBoost,
-        },
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        body: payload,
+        responseType: 'arrayBuffer',
       });
 
       if (error) {
@@ -167,7 +168,8 @@ const ElevenLabsTTSTest = () => {
         return;
       }
 
-      // The data should be the audio blob
+      console.log("[TTS] Received data type:", data ? Object.prototype.toString.call(data) : 'null');
+
       if (data instanceof ArrayBuffer || data instanceof Uint8Array) {
         const audioBlob = new Blob([data], { type: 'audio/mpeg' });
         const url = URL.createObjectURL(audioBlob);
@@ -175,8 +177,8 @@ const ElevenLabsTTSTest = () => {
 
         // Auto-play the audio
         const audio = new Audio(url);
-        audio.play().catch(error => {
-          console.error('Auto-play failed:', error);
+        audio.play().catch(err => {
+          console.error('Auto-play failed:', err);
           toast({
             title: "Audio Ready",
             description: "Speech generated successfully! Click the download link to play.",
@@ -195,8 +197,8 @@ const ElevenLabsTTSTest = () => {
           variant: "destructive",
         });
       }
-    } catch (error) {
-      console.error('Failed to generate speech:', error);
+    } catch (err) {
+      console.error('Failed to generate speech:', err);
       toast({
         title: "Error",
         description: "Failed to generate speech. Please try again.",
