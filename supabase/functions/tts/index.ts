@@ -145,7 +145,24 @@ serve(async (req) => {
 
     // Text-to-speech endpoint
     if (req.method === 'POST') {
-      const body = await req.json();
+      let body;
+      try {
+        const bodyText = await req.text();
+        console.log(`[${requestId}] Request body:`, bodyText);
+        
+        if (!bodyText || bodyText.trim() === '') {
+          throw new Error('Empty request body');
+        }
+        
+        body = JSON.parse(bodyText);
+      } catch (parseError) {
+        console.error(`[${requestId}] JSON parsing error:`, parseError);
+        return new Response(
+          JSON.stringify({ error: 'Invalid JSON in request body', status: 400 }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const { 
         text, 
         voiceId = defaultVoiceId, 
