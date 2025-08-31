@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,7 +7,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, ChevronDown, Download, Volume2, CheckCircle, Play, Pause } from 'lucide-react';
+import { Loader2, ChevronDown, Download, Volume2, CheckCircle, Play, Pause, VolumeX } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -44,6 +43,7 @@ const ElevenLabsTTSTest = () => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [healthStatus, setHealthStatus] = useState<{ ok: boolean; hasKey: boolean } | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [audioVolume, setAudioVolume] = useState(1.0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const maxChars = 5000;
@@ -250,24 +250,37 @@ const ElevenLabsTTSTest = () => {
   const togglePlayback = () => {
     if (!audioRef.current || !audioUrl) return;
 
+    // Ensure volume is set
+    audioRef.current.volume = audioVolume;
+    console.log("[TTS] Audio volume set to:", audioRef.current.volume);
+    console.log("[TTS] Audio muted:", audioRef.current.muted);
+    console.log("[TTS] Audio duration:", audioRef.current.duration);
+    console.log("[TTS] Audio ready state:", audioRef.current.readyState);
+
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
       console.log("[TTS] Attempting to play audio from URL:", audioUrl);
+      
+      // Unmute if muted
+      audioRef.current.muted = false;
+      
       const playPromise = audioRef.current.play();
       
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
             console.log("[TTS] Audio playback started successfully");
+            console.log("[TTS] Current time:", audioRef.current?.currentTime);
+            console.log("[TTS] Volume:", audioRef.current?.volume);
             setIsPlaying(true);
           })
           .catch(err => {
             console.error('Audio playback failed:', err);
             toast({
               title: "Playback Error",
-              description: "Failed to play audio. Try downloading the file instead.",
+              description: `Failed to play audio: ${err.message}. Try downloading the file instead.`,
               variant: "destructive",
             });
           });
@@ -276,6 +289,7 @@ const ElevenLabsTTSTest = () => {
   };
 
   const handleAudioEnded = () => {
+    console.log("[TTS] Audio playback ended");
     setIsPlaying(false);
   };
 
@@ -291,6 +305,38 @@ const ElevenLabsTTSTest = () => {
 
   const handleAudioCanPlay = () => {
     console.log("[TTS] Audio can play - ready for playback");
+    console.log("[TTS] Audio duration:", audioRef.current?.duration);
+    console.log("[TTS] Audio volume:", audioRef.current?.volume);
+  };
+
+  const handleAudioLoadedData = () => {
+    console.log("[TTS] Audio data loaded");
+    if (audioRef.current) {
+      audioRef.current.volume = audioVolume;
+      console.log("[TTS] Set volume to:", audioRef.current.volume);
+    }
+  };
+
+  const testSystemAudio = () => {
+    // Create a simple beep to test if system audio is working
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 440; // A4 note
+    gainNode.gain.value = 0.1;
+    
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.2);
+    
+    console.log("[TTS] Test beep played");
+    toast({
+      title: "Audio Test",
+      description: "Test beep played. If you heard it, your system audio is working.",
+    });
   };
 
   const updateSettings = (key: keyof TTSSettings, value: any) => {
@@ -443,6 +489,29 @@ const ElevenLabsTTSTest = () => {
           </CollapsibleContent>
         </Collapsible>
 
+        {/* Audio Volume Control */}
+        <div className="space-y-2">
+          <Label>Audio Volume: {Math.round(audioVolume * 100)}%</Label>
+          <Slider
+            value={[audioVolume]}
+            onValueChange={([value]) => setAudioVolume(value)}
+            max={1}
+            min={0}
+            step={0.01}
+            className="w-full"
+          />
+        </div>
+
+        {/* System Audio Test */}
+        <Button
+          onClick={testSystemAudio}
+          variant="outline"
+          size="sm"
+          className="w-full"
+        >
+          Test System Audio (Beep)
+        </Button>
+
         {/* Generate Button */}
         <Button
           onClick={generateSpeech}
@@ -468,15 +537,17 @@ const ElevenLabsTTSTest = () => {
           <div className="space-y-4 p-4 bg-green-50 rounded-lg border border-green-200">
             <div className="text-green-800 font-medium text-center">Audio Generated!</div>
             
-            {/* Audio element with better error handling */}
+            {/* Audio element with comprehensive event handling */}
             <audio
               ref={audioRef}
               src={audioUrl}
               onEnded={handleAudioEnded}
               onError={handleAudioError}
               onCanPlay={handleAudioCanPlay}
+              onLoadedData={handleAudioLoadedData}
               preload="metadata"
               className="hidden"
+              volume={audioVolume}
             />
             
             {/* Custom audio controls */}
@@ -500,6 +571,15 @@ const ElevenLabsTTSTest = () => {
                 )}
               </Button>
               
+              <div className="flex items-center gap-2">
+                {audioVolume === 0 ? (
+                  <VolumeX className="h-4 w-4" />
+                ) : (
+                  <Volume2 className="h-4 w-4" />
+                )}
+                <span className="text-sm">{Math.round(audioVolume * 100)}%</span>
+              </div>
+              
               <Button asChild variant="outline" size="sm">
                 <a
                   href={audioUrl}
@@ -512,9 +592,13 @@ const ElevenLabsTTSTest = () => {
               </Button>
             </div>
             
-            {/* Debug info */}
-            <div className="text-xs text-gray-500 text-center">
-              Audio URL: {audioUrl.substring(0, 50)}...
+            {/* Audio debug info */}
+            <div className="text-xs text-gray-500 text-center space-y-1">
+              <div>Audio URL: {audioUrl.substring(0, 50)}...</div>
+              <div>Volume: {Math.round(audioVolume * 100)}%</div>
+              {audioRef.current && (
+                <div>Ready State: {audioRef.current.readyState} | Duration: {audioRef.current.duration || 'Unknown'}</div>
+              )}
             </div>
           </div>
         )}
