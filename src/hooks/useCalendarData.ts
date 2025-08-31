@@ -38,10 +38,13 @@ export function useCalendarData(selectedDate: Date = new Date()) {
   return useQuery({
     queryKey: ['calendar-data', date.toISOString().split('T')[0]],
     queryFn: async () => {
+      console.log('Loading calendar data for date:', date.toISOString().split('T')[0]);
+      
       const { start, end } = startEndOfDay(date);
 
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
+        console.log('No session found');
         return {
           events: [] as CalendarEvent[],
           busynessScore: 0,
@@ -51,15 +54,19 @@ export function useCalendarData(selectedDate: Date = new Date()) {
         };
       }
 
+      console.log('User session found, syncing calendars...');
+
       // Trigger calendar sync for the current user
       try {
         await CalendarSyncService.syncAllUserCalendars(sessionData.session.user.id);
+        console.log('Calendar sync completed');
       } catch (error) {
         console.error('Error syncing calendars:', error);
         // Continue with loading existing events even if sync fails
       }
 
       // Load events for the selected date
+      console.log('Loading events from database...');
       const { data: events, error: eventsError } = await supabase
         .from('events')
         .select('*')
@@ -67,7 +74,12 @@ export function useCalendarData(selectedDate: Date = new Date()) {
         .lt('start_time', end.toISOString())
         .order('start_time', { ascending: true });
 
-      if (eventsError) throw eventsError;
+      if (eventsError) {
+        console.error('Error loading events:', eventsError);
+        throw eventsError;
+      }
+
+      console.log(`Loaded ${events?.length || 0} events from database`);
 
       const calendarEvents: CalendarEvent[] = (events || []).map((e: any) => {
         const s = new Date(e.start_time);
@@ -94,6 +106,13 @@ export function useCalendarData(selectedDate: Date = new Date()) {
       
       // Calculate busyness score (0-100)
       const busynessScore = Math.min(100, Math.round((busyHours / workDayHours) * 100));
+
+      console.log('Calendar data processed:', {
+        totalEvents: calendarEvents.length,
+        busyHours,
+        freeHours,
+        busynessScore
+      });
 
       return {
         events: calendarEvents,
