@@ -49,6 +49,15 @@ const ElevenLabsTTSTest = () => {
   const maxChars = 5000;
   const remainingChars = maxChars - settings.text.length;
 
+  // Default voices list as fallback
+  const defaultVoices = [
+    { id: '9BWtsMINqrJLrRacOk9x', name: 'Aria (Default)' },
+    { id: 'CwhRBWXzGAHq8TQ4Fs17', name: 'Roger' },
+    { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah' },
+    { id: 'FGY2WhTYpPnrIDTdsKH5', name: 'Laura' },
+    { id: 'IKne3meq5aSn9XLyUdCD', name: 'Charlie' },
+  ];
+
   // Load settings from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('elevenlabs-tts-settings');
@@ -97,7 +106,8 @@ const ElevenLabsTTSTest = () => {
       
       if (error) {
         console.error('Error loading voices:', error);
-        setVoicesError("Couldn't load voices; using default voice.");
+        setVoicesError("Couldn't load voices; using default voices.");
+        setVoices(defaultVoices);
         return;
       }
       
@@ -105,11 +115,13 @@ const ElevenLabsTTSTest = () => {
         setVoices(data);
       } else {
         console.error('Invalid voices response format:', data);
-        setVoicesError("Couldn't load voices; using default voice.");
+        setVoicesError("Couldn't load voices; using default voices.");
+        setVoices(defaultVoices);
       }
     } catch (error) {
       console.error('Failed to load voices:', error);
-      setVoicesError("Couldn't load voices; using default voice.");
+      setVoicesError("Couldn't load voices; using default voices.");
+      setVoices(defaultVoices);
     } finally {
       setIsLoadingVoices(false);
     }
@@ -204,6 +216,11 @@ const ElevenLabsTTSTest = () => {
         
         setAudioUrl(url);
 
+        // Test if the audio can load
+        if (audioRef.current) {
+          audioRef.current.load();
+        }
+
         toast({
           title: "Success",
           description: "Speech generated successfully!",
@@ -238,15 +255,23 @@ const ElevenLabsTTSTest = () => {
       setIsPlaying(false);
     } else {
       console.log("[TTS] Attempting to play audio from URL:", audioUrl);
-      audioRef.current.play().catch(err => {
-        console.error('Audio playback failed:', err);
-        toast({
-          title: "Playback Error",
-          description: "Failed to play audio. Try downloading the file instead.",
-          variant: "destructive",
-        });
-      });
-      setIsPlaying(true);
+      const playPromise = audioRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log("[TTS] Audio playback started successfully");
+            setIsPlaying(true);
+          })
+          .catch(err => {
+            console.error('Audio playback failed:', err);
+            toast({
+              title: "Playback Error",
+              description: "Failed to play audio. Try downloading the file instead.",
+              variant: "destructive",
+            });
+          });
+      }
     }
   };
 
@@ -262,6 +287,10 @@ const ElevenLabsTTSTest = () => {
       description: "There was an error with the audio file. Try generating again.",
       variant: "destructive",
     });
+  };
+
+  const handleAudioCanPlay = () => {
+    console.log("[TTS] Audio can play - ready for playback");
   };
 
   const updateSettings = (key: keyof TTSSettings, value: any) => {
@@ -439,12 +468,13 @@ const ElevenLabsTTSTest = () => {
           <div className="space-y-4 p-4 bg-green-50 rounded-lg border border-green-200">
             <div className="text-green-800 font-medium text-center">Audio Generated!</div>
             
-            {/* Audio element with error handling */}
+            {/* Audio element with better error handling */}
             <audio
               ref={audioRef}
               src={audioUrl}
               onEnded={handleAudioEnded}
               onError={handleAudioError}
+              onCanPlay={handleAudioCanPlay}
               preload="metadata"
               className="hidden"
             />
