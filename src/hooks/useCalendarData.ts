@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { CalendarSyncService } from '@/services/calendarSync';
 
 export type CalendarEvent = {
   id: string;
@@ -48,6 +49,14 @@ export function useCalendarData(selectedDate: Date = new Date()) {
           freeHours: 8, // Default work day
           totalEvents: 0,
         };
+      }
+
+      // Trigger calendar sync for the current user
+      try {
+        await CalendarSyncService.syncAllUserCalendars(sessionData.session.user.id);
+      } catch (error) {
+        console.error('Error syncing calendars:', error);
+        // Continue with loading existing events even if sync fails
       }
 
       // Load events for the selected date

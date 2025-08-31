@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
   const [mode, setMode] = useState<AuthMode>('signup');
   const [icsUrls, setIcsUrls] = useState<string[]>(['']);
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingUser, setPendingUser] = useState<any>(null);
   const { toast } = useToast();
 
   const authForm = useForm<AuthFormData>({
@@ -58,7 +60,7 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
     setIsLoading(true);
     try {
       if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({
+        const { data: authData, error } = await supabase.auth.signUp({
           email: data.email,
           password: data.password,
           options: {
@@ -86,9 +88,10 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
             });
           }
         } else {
+          setPendingUser(authData.user);
           toast({
             title: "Check your email",
-            description: "We've sent you a confirmation link to complete your signup.",
+            description: "We've sent you a confirmation link. Please complete the calendar setup below.",
           });
           setMode('calendar-setup');
         }
@@ -124,13 +127,69 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
   };
 
   const onCalendarSubmit = async (data: CalendarSetupData) => {
-    console.log('Calendar setup data:', data);
-    // TODO: Save calendar settings to Supabase
-    toast({
-      title: "Setup complete!",
-      description: "Your calendar preferences have been saved.",
-    });
-    onOpenChange(false);
+    if (!pendingUser) {
+      toast({
+        title: "Error",
+        description: "No user session found. Please sign up again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Update work hours in profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          work_start_time: data.workStart,
+          work_end_time: data.workEnd,
+        })
+        .eq('user_id', pendingUser.id);
+
+      if (profileError) {
+        console.error('Error updating profile:', profileError);
+      }
+
+      // Save ICS calendar integrations
+      const validIcsUrls = data.icsUrls.filter(url => url.trim() !== '');
+      if (validIcsUrls.length > 0) {
+        const calendarIntegrations = validIcsUrls.map(url => ({
+          user_id: pendingUser.id,
+          provider: 'ics',
+          calendar_url: url,
+          is_active: true
+        }));
+
+        const { error: calendarError } = await supabase
+          .from('calendar_integrations')
+          .insert(calendarIntegrations);
+
+        if (calendarError) {
+          console.error('Error saving calendar integrations:', calendarError);
+          toast({
+            title: "Warning",
+            description: "Calendar setup partially failed. You can add calendars later in your profile.",
+            variant: "destructive"
+          });
+        }
+      }
+
+      toast({
+        title: "Setup complete!",
+        description: "Your account and calendar preferences have been saved.",
+      });
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Calendar setup error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save calendar settings. You can add them later in your profile.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const addIcsUrl = () => {
@@ -145,6 +204,8 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
     const newUrls = [...icsUrls];
     newUrls[index] = value;
     setIcsUrls(newUrls);
+    // Update form data as well
+    calendarForm.setValue('icsUrls', newUrls);
   };
 
   return (
@@ -267,16 +328,17 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
                         <div className="flex-1">
                           <h4 className="font-medium">Google Calendar</h4>
                           <p className="text-sm text-muted-foreground">
-                            Recommended: Real-time sync with your Google Calendar
+                            Coming soon: Real-time sync with your Google Calendar
                           </p>
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
                             className="mt-2 text-xs"
+                            disabled
                           >
                             <ExternalLink className="h-3 w-3 mr-1" />
-                            Connect Google
+                            Connect Google (Coming Soon)
                           </Button>
                         </div>
                       </div>
@@ -371,8 +433,8 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
                   >
                     Back
                   </Button>
-                  <Button type="submit" className="flex-1 wellness-button">
-                    Complete Setup
+                  <Button type="submit" className="flex-1 wellness-button" disabled={isLoading}>
+                    {isLoading ? 'Saving...' : 'Complete Setup'}
                   </Button>
                 </div>
               </form>
