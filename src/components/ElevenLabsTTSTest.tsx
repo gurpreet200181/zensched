@@ -547,7 +547,6 @@ const ElevenLabsTTSTest = () => {
               onLoadedData={handleAudioLoadedData}
               preload="metadata"
               className="hidden"
-              volume={audioVolume}
             />
             
             {/* Custom audio controls */}
