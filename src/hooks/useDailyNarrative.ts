@@ -1,4 +1,5 @@
 
+
 import { useMemo } from 'react';
 import { CalendarEvent } from './useCalendarData';
 
@@ -59,7 +60,7 @@ export function useDailyNarrative(
       // Afternoon/evening language - focus on remaining time
       if (busynessScore < 40) {
         narrative += "You have a nicely balanced rest of the day ahead with breathing room. ";
-      } else if (busyness < 60) {
+      } else if (busynessScore < 60) {
         narrative += "The rest of your day looks well-structured with a good mix of commitments. ";
       } else if (busynessScore < 80) {
         narrative += "You still have a busy remainder of the day ahead. ";
@@ -109,3 +110,4 @@ export function useDailyNarrative(
     return narrative;
   }, [busynessScore, events, busyHours, freeHours]);
 }
+
