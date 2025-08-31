@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -156,11 +157,11 @@ const ElevenLabsTTSTest = () => {
 
       console.log("[TTS] Invoking function with payload:", payload);
 
-      // Call the function and get the response
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/tts`, {
+      // Call the function using fetch with the correct Supabase URL
+      const response = await fetch(`https://wqjwklwlvdwwntnukfwm.supabase.co/functions/v1/tts`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxandrbHdsdmR3d250bnVrZndtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NDUwMzEsImV4cCI6MjA3MjIyMTAzMX0.x17dHGruyLypuyVAr_mweofF9JBb1ccljWJkcGA0UNg`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
