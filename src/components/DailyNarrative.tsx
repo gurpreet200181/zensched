@@ -1,7 +1,5 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Volume2, VolumeX, Play, Pause } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useDailyNarrative } from '@/hooks/useDailyNarrative';
 import { CalendarEvent } from '@/hooks/useCalendarData';
@@ -11,33 +9,24 @@ interface DailyNarrativeProps {
   events: CalendarEvent[];
   busyHours: number;
   freeHours: number;
-  autoPlay?: boolean;
 }
 
 const DailyNarrative = ({ 
   busynessScore, 
   events, 
   busyHours, 
-  freeHours, 
-  autoPlay = false 
+  freeHours
 }: DailyNarrativeProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [hasPlayedToday, setHasPlayedToday] = useState(false);
+  const [hasPlayedThisSession, setHasPlayedThisSession] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const narrative = useDailyNarrative(busynessScore, events, busyHours, freeHours);
 
-  // Check if we've already played today's narrative
-  useEffect(() => {
-    const today = new Date().toDateString();
-    const lastPlayed = localStorage.getItem('dailyNarrativeLastPlayed');
-    setHasPlayedToday(lastPlayed === today);
-  }, []);
-
   const generateAndPlayAudio = async () => {
-    if (isLoading) return;
+    if (isLoading || hasPlayedThisSession) return;
 
     setIsLoading(true);
     try {
@@ -69,13 +58,11 @@ const DailyNarrative = ({
       audio.onpause = () => setIsPlaying(false);
       audio.onended = () => {
         setIsPlaying(false);
-        // Mark as played today
-        localStorage.setItem('dailyNarrativeLastPlayed', new Date().toDateString());
-        setHasPlayedToday(true);
+        setHasPlayedThisSession(true);
       };
 
       await audio.play();
-      console.log('Daily narrative playing');
+      console.log('Daily narrative playing automatically');
       
     } catch (error) {
       console.error('Error generating daily narrative:', error);
@@ -84,22 +71,9 @@ const DailyNarrative = ({
     }
   };
 
-  const togglePlayback = () => {
-    if (!audioRef.current) {
-      generateAndPlayAudio();
-      return;
-    }
-
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
-    }
-  };
-
-  // Auto-play on first visit of the day
+  // Auto-play on component mount (when user logs in and visits dashboard)
   useEffect(() => {
-    if (autoPlay && !hasPlayedToday && !isLoading && events.length > 0) {
+    if (!hasPlayedThisSession && !isLoading && events.length >= 0) {
       // Small delay to let the dashboard load
       const timer = setTimeout(() => {
         generateAndPlayAudio();
@@ -107,7 +81,7 @@ const DailyNarrative = ({
       
       return () => clearTimeout(timer);
     }
-  }, [autoPlay, hasPlayedToday, events.length]);
+  }, [events.length, hasPlayedThisSession]);
 
   // Cleanup audio URL
   useEffect(() => {
@@ -118,26 +92,8 @@ const DailyNarrative = ({
     };
   }, [audioUrl]);
 
-  return (
-    <div className="flex items-center gap-2">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={togglePlayback}
-        disabled={isLoading}
-        className="flex items-center gap-2 text-sm"
-      >
-        {isLoading ? (
-          <VolumeX className="h-4 w-4 animate-pulse" />
-        ) : isPlaying ? (
-          <Pause className="h-4 w-4" />
-        ) : (
-          <Volume2 className="h-4 w-4" />
-        )}
-        {isLoading ? 'Generating...' : isPlaying ? 'Playing Daily Brief' : 'Play Daily Brief'}
-      </Button>
-    </div>
-  );
+  // Return null - no visible UI
+  return null;
 };
 
 export default DailyNarrative;

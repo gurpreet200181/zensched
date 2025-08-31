@@ -29,21 +29,20 @@ const Dashboard = () => {
 
   return (
     <div className="container mx-auto px-6 py-8">
+      {/* Always include DailyNarrative for today - it will auto-play on login */}
+      {isToday && !isLoading && data && (
+        <DailyNarrative
+          busynessScore={data.busynessScore}
+          events={data.events}
+          busyHours={data.busyHours}
+          freeHours={data.freeHours}
+        />
+      )}
+
       <div className="mb-8">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-4 mb-2">
-              <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
-              {isToday && !isLoading && data && (
-                <DailyNarrative
-                  busynessScore={data.busynessScore}
-                  events={data.events}
-                  busyHours={data.busyHours}
-                  freeHours={data.freeHours}
-                  autoPlay={true}
-                />
-              )}
-            </div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Dashboard</h1>
             <p className="text-gray-600">
               {selectedDate.toLocaleDateString(undefined, {
                 weekday: 'long',
