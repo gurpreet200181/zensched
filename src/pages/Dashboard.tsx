@@ -1,9 +1,9 @@
-
 import { useState } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import BusynessScore from '@/components/BusynessScore';
 import EventList from '@/components/EventList';
 import WellnessRecommendations from '@/components/WellnessRecommendations';
+import DailyNarrative from '@/components/DailyNarrative';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -24,12 +24,26 @@ const Dashboard = () => {
     }
   };
 
+  // Check if selected date is today
+  const isToday = selectedDate.toDateString() === new Date().toDateString();
+
   return (
     <div className="container mx-auto px-6 py-8">
       <div className="mb-8">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Dashboard</h1>
+            <div className="flex items-center gap-4 mb-2">
+              <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
+              {isToday && !isLoading && data && (
+                <DailyNarrative
+                  busynessScore={data.busynessScore}
+                  events={data.events}
+                  busyHours={data.busyHours}
+                  freeHours={data.freeHours}
+                  autoPlay={true}
+                />
+              )}
+            </div>
             <p className="text-gray-600">
               {selectedDate.toLocaleDateString(undefined, {
                 weekday: 'long',
@@ -150,4 +164,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
