@@ -1,4 +1,3 @@
-
 export interface ICSEvent {
   id: string;
   title: string;
@@ -14,21 +13,65 @@ export class ICSParser {
     try {
       console.log('Fetching ICS from URL:', url);
       
-      // Use a CORS proxy for development/demo purposes
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+      // Try multiple CORS proxies for better reliability
+      const proxies = [
+        `https://cors-anywhere.herokuapp.com/${url}`,
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+        `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`
+      ];
       
-      const response = await fetch(proxyUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch calendar: ${response.statusText}`);
+      let icsContent = '';
+      let lastError: Error | null = null;
+      
+      for (const proxyUrl of proxies) {
+        try {
+          console.log('Trying proxy:', proxyUrl);
+          const response = await fetch(proxyUrl, {
+            headers: {
+              'Accept': 'text/calendar,text/plain,*/*',
+              'User-Agent': 'Mozilla/5.0 (compatible; CalendarSync/1.0)',
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
+          const data = await response.text();
+          
+          // Handle different proxy response formats
+          if (proxyUrl.includes('allorigins.win')) {
+            try {
+              const jsonData = JSON.parse(data);
+              icsContent = jsonData.contents;
+            } catch {
+              icsContent = data;
+            }
+          } else {
+            icsContent = data;
+          }
+          
+          // Handle base64 encoded content
+          if (icsContent.startsWith('data:text/calendar')) {
+            const base64Data = icsContent.split(',')[1];
+            icsContent = atob(base64Data);
+          }
+          
+          if (icsContent.includes('BEGIN:VCALENDAR')) {
+            console.log('Successfully fetched ICS content via:', proxyUrl);
+            break;
+          } else {
+            throw new Error('Invalid ICS content received');
+          }
+        } catch (error) {
+          console.warn(`Proxy ${proxyUrl} failed:`, error);
+          lastError = error as Error;
+          continue;
+        }
       }
       
-      const data = await response.json();
-      let icsContent = data.contents;
-      
-      // Handle base64 encoded content
-      if (icsContent.startsWith('data:text/calendar')) {
-        const base64Data = icsContent.split(',')[1];
-        icsContent = atob(base64Data);
+      if (!icsContent || !icsContent.includes('BEGIN:VCALENDAR')) {
+        throw lastError || new Error('All CORS proxies failed to fetch ICS content');
       }
       
       console.log('ICS content preview:', icsContent.substring(0, 200));
@@ -36,7 +79,10 @@ export class ICSParser {
       return this.parseICSContent(icsContent);
     } catch (error) {
       console.error('Error fetching ICS calendar:', error);
-      throw error;
+      
+      // Return empty array instead of throwing to prevent sync from failing completely
+      console.log('Returning empty events array due to fetch failure');
+      return [];
     }
   }
 

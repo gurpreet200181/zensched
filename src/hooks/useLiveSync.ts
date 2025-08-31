@@ -16,6 +16,7 @@ export function useLiveSync() {
   const [pollingMs, setPollingMs] = useState<number>(60_000); // 1 minute
   const [isPushActive, setIsPushActive] = useState<boolean>(false);
   const [isPaused, setIsPaused] = useState<boolean>(document.visibilityState !== 'visible');
+  const [lastSyncResult, setLastSyncResult] = useState<'success' | 'error' | null>(null);
   const isSyncingRef = useRef(false);
   const idlePollCountRef = useRef(0);
   const intervalRef = useRef<number | null>(null);
@@ -39,12 +40,18 @@ export function useLiveSync() {
 
   const statusLabel = useMemo(() => {
     if (isPaused) return 'Sync: Paused (hidden)';
-    return pollingMs >= 300_000 ? 'Sync: Auto (5 min polling)' : 'Sync: Auto (1 min polling)';
-  }, [isPaused, pollingMs]);
+    const baseStatus = pollingMs >= 300_000 ? 'Sync: Auto (5 min polling)' : 'Sync: Auto (1 min polling)';
+    if (lastSyncResult === 'error') return `${baseStatus} - Error`;
+    return baseStatus;
+  }, [isPaused, pollingMs, lastSyncResult]);
 
   async function doSync(reason: string) {
     if (!userId) return;
-    if (isSyncingRef.current) return;
+    if (isSyncingRef.current) {
+      console.log(`[sync] already in progress, skipping (${reason})`);
+      return;
+    }
+    
     isSyncingRef.current = true;
     console.log(`[sync] start (${reason}) with user ${userId}`);
 
@@ -63,6 +70,15 @@ export function useLiveSync() {
       if (pollingMs !== 60_000) {
         setPollingMs(60_000);
       }
+      
+      setLastSyncResult('success');
+      console.log(`[sync] completed successfully (${reason})`);
+    } catch (error) {
+      console.error(`[sync] failed (${reason}):`, error);
+      setLastSyncResult('error');
+      
+      // Don't reset idle counter on error, but also don't increase it too aggressively
+      // This prevents getting stuck in long polling intervals due to temporary errors
     } finally {
       isSyncingRef.current = false;
     }
@@ -100,7 +116,7 @@ export function useLiveSync() {
     };
   }, [isPaused, pollingMs, userId]);
 
-  // Main polling timer
+  // Main polling timer - improved with better error recovery
   useEffect(() => {
     if (isPaused || !userId) {
       if (intervalRef.current) {
@@ -121,10 +137,14 @@ export function useLiveSync() {
     intervalRef.current = window.setInterval(async () => {
       // On each tick, sync then increase idle counter and maybe backoff
       await doSync('poll-tick');
-      idlePollCountRef.current += 1;
-      if (idlePollCountRef.current >= 10 && pollingMs !== 300_000) {
-        console.log('[sync] idle detected, backing off to 5 min');
-        setPollingMs(300_000);
+      
+      // Only increase idle counter if sync was successful
+      if (lastSyncResult === 'success') {
+        idlePollCountRef.current += 1;
+        if (idlePollCountRef.current >= 10 && pollingMs !== 300_000) {
+          console.log('[sync] idle detected, backing off to 5 min');
+          setPollingMs(300_000);
+        }
       }
     }, pollingMs);
 
@@ -134,7 +154,7 @@ export function useLiveSync() {
         intervalRef.current = null;
       }
     };
-  }, [pollingMs, isPaused, userId]);
+  }, [pollingMs, isPaused, userId, lastSyncResult]);
 
   // ICS fallback timer (15 minutes)
   useEffect(() => {
@@ -205,6 +225,7 @@ export function useLiveSync() {
     statusLabel,
     pollingMs,
     isPushActive,
+    lastSyncResult,
     forceSync: () => doSync('manual'),
   };
 }
