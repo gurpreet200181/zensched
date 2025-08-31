@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -157,71 +156,67 @@ const ElevenLabsTTSTest = () => {
 
       console.log("[TTS] Invoking function with payload:", payload);
 
-      const { data, error } = await supabase.functions.invoke('tts', {
-        body: payload,
+      // Call the function and get the response
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/tts`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
       });
 
-      if (error) {
-        console.error('TTS generation error:', error);
+      console.log("[TTS] Response status:", response.status);
+      console.log("[TTS] Response headers:", response.headers.get('content-type'));
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('TTS generation error:', errorText);
         toast({
           title: "Error",
-          description: error.message || "Failed to generate speech",
+          description: "Failed to generate speech",
           variant: "destructive",
         });
         return;
       }
 
-      console.log("[TTS] Received data type:", data ? Object.prototype.toString.call(data) : 'null');
-
-      // Handle the response - it should be an ArrayBuffer
-      let audioBlob: Blob;
-      
-      if (data instanceof ArrayBuffer) {
-        console.log("[TTS] Creating blob from ArrayBuffer, size:", data.byteLength);
-        audioBlob = new Blob([data], { type: 'audio/mpeg' });
-      } else if (typeof data === 'string') {
-        // Handle case where data comes as a binary string
-        console.log("[TTS] Converting string to ArrayBuffer, length:", data.length);
-        const bytes = new Uint8Array(data.length);
-        for (let i = 0; i < data.length; i++) {
-          bytes[i] = data.charCodeAt(i);
+      // Check if response is actually audio
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('audio/mpeg')) {
+        // Response is audio data
+        const audioBuffer = await response.arrayBuffer();
+        console.log("[TTS] Received audio buffer, size:", audioBuffer.byteLength);
+        
+        if (audioBuffer.byteLength === 0) {
+          console.error("[TTS] Empty audio buffer received");
+          toast({
+            title: "Error",
+            description: "Empty audio file generated",
+            variant: "destructive",
+          });
+          return;
         }
-        audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
-      } else if (data && typeof data === 'object' && data.constructor === Object) {
-        // Handle case where data is wrapped in an object
-        console.log("[TTS] Data is object, keys:", Object.keys(data));
-        throw new Error("Received object instead of audio data");
+
+        const audioBlob = new Blob([audioBuffer], { type: 'audio/mpeg' });
+        const url = URL.createObjectURL(audioBlob);
+        console.log("[TTS] Created blob URL:", url, "blob size:", audioBlob.size);
+        
+        setAudioUrl(url);
+
+        toast({
+          title: "Success",
+          description: "Speech generated successfully!",
+        });
       } else {
-        console.error('Unexpected response format:', data);
+        // Response might be JSON with error
+        const text = await response.text();
+        console.error('Unexpected response:', text);
         toast({
           title: "Error",
           description: "Unexpected response format from server",
           variant: "destructive",
         });
-        return;
       }
-
-      // Create blob URL and test it
-      const url = URL.createObjectURL(audioBlob);
-      console.log("[TTS] Created blob URL:", url, "blob size:", audioBlob.size);
-      
-      // Verify the blob is valid
-      if (audioBlob.size === 0) {
-        console.error("[TTS] Empty audio blob created");
-        toast({
-          title: "Error",
-          description: "Empty audio file generated",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setAudioUrl(url);
-
-      toast({
-        title: "Success",
-        description: "Speech generated successfully!",
-      });
     } catch (err) {
       console.error('Failed to generate speech:', err);
       toast({
@@ -241,6 +236,7 @@ const ElevenLabsTTSTest = () => {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
+      console.log("[TTS] Attempting to play audio from URL:", audioUrl);
       audioRef.current.play().catch(err => {
         console.error('Audio playback failed:', err);
         toast({
@@ -255,6 +251,16 @@ const ElevenLabsTTSTest = () => {
 
   const handleAudioEnded = () => {
     setIsPlaying(false);
+  };
+
+  const handleAudioError = (e: React.SyntheticEvent<HTMLAudioElement>) => {
+    console.error("[TTS] Audio element error:", e.currentTarget.error);
+    setIsPlaying(false);
+    toast({
+      title: "Audio Error",
+      description: "There was an error with the audio file. Try generating again.",
+      variant: "destructive",
+    });
   };
 
   const updateSettings = (key: keyof TTSSettings, value: any) => {
@@ -432,11 +438,12 @@ const ElevenLabsTTSTest = () => {
           <div className="space-y-4 p-4 bg-green-50 rounded-lg border border-green-200">
             <div className="text-green-800 font-medium text-center">Audio Generated!</div>
             
-            {/* Audio element */}
+            {/* Audio element with error handling */}
             <audio
               ref={audioRef}
               src={audioUrl}
               onEnded={handleAudioEnded}
+              onError={handleAudioError}
               preload="metadata"
               className="hidden"
             />
@@ -472,6 +479,11 @@ const ElevenLabsTTSTest = () => {
                   Download MP3
                 </a>
               </Button>
+            </div>
+            
+            {/* Debug info */}
+            <div className="text-xs text-gray-500 text-center">
+              Audio URL: {audioUrl.substring(0, 50)}...
             </div>
           </div>
         )}
