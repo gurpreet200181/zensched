@@ -25,6 +25,7 @@ const DailyNarrative = ({
   const [hasPlayedToday, setHasPlayedToday] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showManualControls, setShowManualControls] = useState(false);
+  const [autoPlayAttempted, setAutoPlayAttempted] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const narrative = useDailyNarrative(busynessScore, events, busyHours, freeHours);
@@ -33,24 +34,23 @@ const DailyNarrative = ({
   useEffect(() => {
     const today = new Date().toDateString();
     const lastPlayedDate = localStorage.getItem('dailyNarrativeLastPlayed');
+    console.log('Checking if played today:', { today, lastPlayedDate });
     if (lastPlayedDate === today) {
       setHasPlayedToday(true);
+      setShowManualControls(true);
     }
-    
-    // Show manual controls after 3 seconds if auto-play hasn't worked
-    const timer = setTimeout(() => {
-      if (!hasPlayedToday && !isPlaying) {
-        setShowManualControls(true);
-      }
-    }, 3000);
-    
-    return () => clearTimeout(timer);
-  }, [hasPlayedToday, isPlaying]);
+  }, []);
 
-  const generateAndPlayAudio = async () => {
+  const generateAndPlayAudio = async (userInitiated = false) => {
     if (isLoading || !narrative) {
       console.log('Cannot play audio:', { isLoading, hasNarrative: !!narrative });
       return;
+    }
+
+    // Prevent multiple simultaneous requests
+    if (audioRef.current && !audioRef.current.paused) {
+      console.log('Audio already playing, stopping current playback');
+      audioRef.current.pause();
     }
 
     setIsLoading(true);
@@ -89,13 +89,14 @@ const DailyNarrative = ({
       const url = URL.createObjectURL(audioBlob);
       setAudioUrl(url);
 
-      // Create and play audio
+      // Create and configure audio
       const audio = new Audio(url);
       audioRef.current = audio;
       
       audio.onplay = () => {
         console.log('Daily narrative started playing');
         setIsPlaying(true);
+        setError(null);
       };
       
       audio.onpause = () => {
@@ -119,8 +120,20 @@ const DailyNarrative = ({
         setShowManualControls(true);
       };
 
-      await audio.play();
-      console.log('Daily narrative audio started successfully');
+      // Try to play audio
+      try {
+        await audio.play();
+        console.log('Daily narrative audio started successfully');
+      } catch (playError) {
+        console.error('Audio play failed:', playError);
+        if (!userInitiated) {
+          // If auto-play failed, show manual controls
+          setError('Auto-play blocked by browser. Click to play manually.');
+          setShowManualControls(true);
+        } else {
+          setError('Failed to play audio. Please try again.');
+        }
+      }
       
     } catch (error) {
       console.error('Error generating daily narrative:', error);
@@ -136,25 +149,41 @@ const DailyNarrative = ({
       if (isPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play();
+        audioRef.current.play().catch(error => {
+          console.error('Play failed:', error);
+          setError('Failed to play audio');
+        });
       }
     } else {
-      generateAndPlayAudio();
+      generateAndPlayAudio(true);
     }
   };
 
-  // Auto-play on component mount when conditions are met
+  // Auto-play attempt on component mount
   useEffect(() => {
-    if (!hasPlayedToday && !isLoading && narrative && events.length >= 0 && !showManualControls) {
+    if (!hasPlayedToday && !isLoading && narrative && events.length >= 0 && !autoPlayAttempted) {
       console.log('Attempting to auto-play daily narrative');
-      // Small delay to let the dashboard fully load
+      setAutoPlayAttempted(true);
+      
+      // Delay auto-play to let the dashboard fully load
       const timer = setTimeout(() => {
-        generateAndPlayAudio();
+        generateAndPlayAudio(false);
       }, 2000);
       
-      return () => clearTimeout(timer);
+      // Show manual controls after 5 seconds if auto-play hasn't worked
+      const fallbackTimer = setTimeout(() => {
+        if (!isPlaying && !hasPlayedToday) {
+          console.log('Auto-play failed, showing manual controls');
+          setShowManualControls(true);
+        }
+      }, 5000);
+      
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(fallbackTimer);
+      };
     }
-  }, [narrative, hasPlayedToday, events.length, showManualControls]);
+  }, [narrative, hasPlayedToday, events.length, autoPlayAttempted]);
 
   // Cleanup audio URL
   useEffect(() => {
@@ -170,7 +199,7 @@ const DailyNarrative = ({
   }, [audioUrl]);
 
   // Show manual controls if needed
-  if (showManualControls || error) {
+  if (showManualControls || error || hasPlayedToday) {
     return (
       <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
         <div className="flex items-center gap-3">
@@ -181,7 +210,7 @@ const DailyNarrative = ({
               <p className="text-sm text-red-600 mt-1">{error}</p>
             )}
             <p className="text-sm text-blue-700">
-              Click to hear your personalized day overview
+              {hasPlayedToday ? 'Click to replay your day overview' : 'Click to hear your personalized day overview'}
             </p>
           </div>
           <Button
@@ -210,7 +239,7 @@ const DailyNarrative = ({
     );
   }
 
-  // Return null for invisible auto-play mode
+  // Return null for invisible auto-play mode (while attempting auto-play)
   return null;
 };
 
