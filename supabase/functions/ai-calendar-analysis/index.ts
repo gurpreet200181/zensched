@@ -10,10 +10,14 @@ const corsHeaders = {
 const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
 
 serve(async (req) => {
+  console.log('AI Calendar Analysis function called');
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log('GROQ_API_KEY exists:', !!GROQ_API_KEY);
+  
   if (!GROQ_API_KEY) {
     console.error('GROQ_API_KEY is not set');
     return new Response(
@@ -74,6 +78,8 @@ Return STRICT JSON:
   "summary": "Your busiest window is 10am-12pm with 3 consecutive meetings. Best focus time appears to be 2-4pm with no interruptions."
 }`;
 
+    console.log('Making request to Groq API...');
+
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -91,11 +97,14 @@ Return STRICT JSON:
       }),
     });
 
+    
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Groq API error:', errorText);
-      throw new Error(`Groq API error: ${response.status}`);
+      console.error('Groq API error:', response.status, errorText);
+      throw new Error(`Groq API error: ${response.status} - ${errorText}`);
     }
+    
+    console.log('Groq API response received successfully');
 
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
