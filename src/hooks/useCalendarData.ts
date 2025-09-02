@@ -1,6 +1,8 @@
+
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAIRecommendations } from './useAIRecommendations';
 
 export type CalendarEvent = {
   id: string;
@@ -30,69 +32,12 @@ function minutesBetween(a: Date, b: Date) {
   return Math.max(0, Math.round((b.getTime() - a.getTime()) / 60000));
 }
 
-function generateRecommendations(busynessScore: number, events: CalendarEvent[]) {
-  const recommendations = [];
-  
-  if (busynessScore > 80) {
-    recommendations.push({
-      id: '1',
-      title: 'Add buffer time between meetings',
-      reason: 'Your schedule is very packed. Adding 15-minute buffers can reduce stress and improve focus.',
-      actionType: 'ADD_BUFFER' as const,
-      confidence: 95
-    });
-    
-    recommendations.push({
-      id: '2',
-      title: 'Consider rescheduling non-critical meetings',
-      reason: 'Moving some meetings to less busy days can create breathing room.',
-      actionType: 'RESCHEDULE_NOTE' as const,
-      confidence: 88
-    });
-  }
-  
-  if (busynessScore > 60) {
-    const hasBreaks = events.some(e => e.classification === 'break');
-    if (!hasBreaks) {
-      recommendations.push({
-        id: '3',
-        title: 'Schedule a wellness break',
-        reason: 'No breaks detected. A 15-30 minute break can improve productivity.',
-        actionType: 'ADD_BUFFER' as const,
-        confidence: 92
-      });
-    }
-    
-    const focusTime = events.filter(e => e.classification === 'focus').length;
-    if (focusTime === 0) {
-      recommendations.push({
-        id: '4',
-        title: 'Block time for deep work',
-        reason: 'No dedicated focus time found. Consider blocking 2+ hours for important tasks.',
-        actionType: 'BLOCK_FOCUS' as const,
-        confidence: 85
-      });
-    }
-  }
-  
-  if (busynessScore > 40) {
-    recommendations.push({
-      id: '5',
-      title: 'Prepare for tomorrow',
-      reason: 'Set aside 10 minutes to review tomorrow\'s agenda and priorities.',
-      actionType: 'PREP_NOTE' as const,
-      confidence: 78
-    });
-  }
-  
-  return recommendations;
-}
-
 export function useCalendarData(selectedDate: Date = new Date()) {
   const [date] = useState(selectedDate);
 
-  return useQuery({
-    queryKey: ['calendar-data', date.toISOString().split('T')[0]],
+  // First, get the calendar events
+  const calendarQuery = useQuery({
+    queryKey: ['calendar-events', date.toISOString().split('T')[0]],
     queryFn: async () => {
       console.log('Loading calendar data for date:', date.toISOString().split('T')[0]);
       
@@ -105,9 +50,8 @@ export function useCalendarData(selectedDate: Date = new Date()) {
           events: [] as CalendarEvent[],
           busynessScore: 0,
           busyHours: 0,
-          freeHours: 8, // Default work day
+          freeHours: 8,
           totalEvents: 0,
-          recommendations: [],
         };
       }
 
@@ -167,9 +111,6 @@ export function useCalendarData(selectedDate: Date = new Date()) {
       // Calculate busyness score (0-100) - breaks don't increase busyness
       const busynessScore = Math.min(100, Math.round((busyHours / workDayHours) * 100));
 
-      // Generate AI recommendations
-      const recommendations = generateRecommendations(busynessScore, calendarEvents);
-
       console.log('Calendar data processed:', {
         totalEvents: calendarEvents.length,
         busyHours,
@@ -184,8 +125,25 @@ export function useCalendarData(selectedDate: Date = new Date()) {
         busyHours,
         freeHours,
         totalEvents: calendarEvents.length,
-        recommendations,
       };
     },
   });
+
+  // Then get AI recommendations based on the events
+  const aiRecommendations = useAIRecommendations(
+    calendarQuery.data?.events || [],
+    !calendarQuery.isLoading && !!calendarQuery.data?.events
+  );
+
+  return {
+    data: calendarQuery.data ? {
+      ...calendarQuery.data,
+      recommendations: aiRecommendations.data?.recommendations || [],
+      aiSummary: aiRecommendations.data?.summary
+    } : undefined,
+    isLoading: calendarQuery.isLoading,
+    error: calendarQuery.error,
+    aiLoading: aiRecommendations.isLoading,
+    aiError: aiRecommendations.error
+  };
 }

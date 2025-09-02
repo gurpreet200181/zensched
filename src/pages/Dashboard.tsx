@@ -16,7 +16,7 @@ import { useLiveSync } from '@/hooks/useLiveSync';
 const Dashboard = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const { data, isLoading, error } = useCalendarData(selectedDate);
+  const { data, isLoading, error, aiLoading, aiError } = useCalendarData(selectedDate);
   const { statusLabel, isPushActive } = useLiveSync();
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -120,11 +120,12 @@ const Dashboard = () => {
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
             {/* AI Wellness Recommendations */}
-            {!isLoading && !error && data?.recommendations && (
+            {!isLoading && !error && (
               <WellnessRecommendations 
-                recommendations={data.recommendations}
-                summary={`Based on your ${data.busynessScore}% busyness score, here are personalized suggestions to optimize your schedule and reduce stress.`}
+                recommendations={data?.recommendations || []}
+                summary={data?.aiSummary || (data?.busynessScore ? `Based on your ${data.busynessScore}% busyness score, here are personalized suggestions to optimize your schedule and reduce stress.` : undefined)}
                 aiEnabled={true}
+                aiLoading={aiLoading}
               />
             )}
 
