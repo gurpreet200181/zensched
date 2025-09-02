@@ -114,9 +114,18 @@ Return STRICT JSON:
     // Parse the JSON response
     let analysisResult;
     try {
-      analysisResult = JSON.parse(aiResponse);
+      // Remove markdown code blocks if present
+      let cleanResponse = aiResponse.trim();
+      if (cleanResponse.startsWith('```json')) {
+        cleanResponse = cleanResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (cleanResponse.startsWith('```')) {
+        cleanResponse = cleanResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      analysisResult = JSON.parse(cleanResponse);
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError);
+      console.error('Raw AI response:', aiResponse);
       // Fallback to basic recommendations if AI response is malformed
       analysisResult = {
         recommendations: [
