@@ -2,6 +2,8 @@
 import { Plus, Clock, Focus, Calendar, Lightbulb, Brain, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Recommendation {
   id: string;
@@ -27,6 +29,38 @@ const WellnessRecommendations = ({
   aiLoading = false,
   className = "" 
 }: WellnessRecommendationsProps) => {
+  const [userCalendarUrl, setUserCalendarUrl] = useState<string | null>(null);
+
+  // Get user's calendar integration on component mount
+  useEffect(() => {
+    const getUserCalendar = async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) return;
+
+        const { data: integrations } = await supabase
+          .from('calendar_integrations')
+          .select('calendar_url')
+          .eq('user_id', sessionData.session.user.id)
+          .eq('is_active', true)
+          .limit(1);
+
+        if (integrations && integrations.length > 0 && integrations[0].calendar_url) {
+          // Extract email from ICS URL to construct Google Calendar URL
+          const icsUrl = integrations[0].calendar_url;
+          const emailMatch = icsUrl.match(/ical\/([^\/]+)%40/);
+          if (emailMatch) {
+            const email = emailMatch[1] + '@' + icsUrl.split('%40')[1].split('/')[0];
+            setUserCalendarUrl(`https://calendar.google.com/calendar/u/0/r?cid=${email}`);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user calendar:', error);
+      }
+    };
+
+    getUserCalendar();
+  }, []);
   const getActionIcon = (actionType: string) => {
     switch (actionType) {
       case 'ADD_BUFFER': return Clock;
@@ -53,9 +87,8 @@ const WellnessRecommendations = ({
       description: "You'll be taken to your calendar to make the recommended changes.",
     });
     
-    // Open user's calendar in a new tab
-    // This opens the default calendar application or Google Calendar
-    const calendarUrl = 'https://calendar.google.com/calendar/u/0/r';
+    // Open user's specific calendar or fallback to default
+    const calendarUrl = userCalendarUrl || 'https://calendar.google.com/calendar/u/0/r';
     window.open(calendarUrl, '_blank');
   };
 
