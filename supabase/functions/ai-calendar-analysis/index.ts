@@ -7,17 +7,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (!OPENAI_API_KEY) {
-    console.error('OPENAI_API_KEY is not set');
+  if (!GROQ_API_KEY) {
+    console.error('GROQ_API_KEY is not set');
     return new Response(
-      JSON.stringify({ error: 'OpenAI API key not configured' }),
+      JSON.stringify({ error: 'Groq API key not configured' }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -74,26 +74,27 @@ Return STRICT JSON:
   "summary": "Your busiest window is 10am-12pm with 3 consecutive meetings. Best focus time appears to be 2-4pm with no interruptions."
 }`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'llama-3.1-70b-versatile',
         messages: [
           { role: 'system', content: 'You are a wellness AI that provides calendar optimization recommendations. Always respond with valid JSON only.' },
           { role: 'user', content: prompt }
         ],
-        max_completion_tokens: 1000,
+        max_tokens: 1000,
+        temperature: 0.3,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error:', errorText);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error('Groq API error:', errorText);
+      throw new Error(`Groq API error: ${response.status}`);
     }
 
     const data = await response.json();
