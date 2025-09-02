@@ -27,9 +27,8 @@ const WellnessHero = () => {
 
           {/* Main heading */}
           <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 text-shadow-lg animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            Zen Schedule
-            <span className="block gradient-text bg-gradient-to-r from-white to-white/80 bg-clip-text">
-              Helper
+            <span className="gradient-text bg-gradient-to-r from-white to-white/80 bg-clip-text">
+              ZenSched
             </span>
           </h1>
 
