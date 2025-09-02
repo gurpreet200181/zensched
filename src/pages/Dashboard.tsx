@@ -12,12 +12,79 @@ import { Clock, Calendar as CalendarIcon, ChevronDown, ChevronUp } from 'lucide-
 import { useCalendarData } from '@/hooks/useCalendarData';
 import SyncStatusBadge from '@/components/SyncStatusBadge';
 import { useLiveSync } from '@/hooks/useLiveSync';
+import AnalyticsChart from '@/components/AnalyticsChart';
+import AnalyticsPie from '@/components/AnalyticsPie';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const { data, isLoading, error, aiLoading, aiError } = useCalendarData(selectedDate);
   const { statusLabel, isPushActive } = useLiveSync();
+
+  // Analytics data query
+  const { data: analyticsData, isLoading: analyticsLoading } = useQuery({
+    queryKey: ["analytics-7d"],
+    queryFn: async () => {
+      const end = new Date();
+      const start = new Date(end);
+      start.setDate(start.getDate() - 6);
+      
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        return { 
+          daySeries: [] as { day: string; meetings: number; busyness: number }[], 
+          pie: [] as { name: string; value: number }[] 
+        };
+      }
+
+      const { data: events } = await supabase
+        .from("events")
+        .select("*")
+        .gte("start_time", start.toISOString())
+        .lt("start_time", new Date(end.getTime() + 24*60*60*1000).toISOString());
+
+      const buckets = new Map<string, { meetings: number; busyness: number }>();
+      const typeCounts = new Map<string, number>();
+
+      // Seed buckets for 7 days
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        d.setHours(0, 0, 0, 0);
+        const dayKey = d.toLocaleDateString(undefined, { weekday: "short" });
+        buckets.set(dayKey, { meetings: 0, busyness: 0 });
+      }
+
+      (events || []).forEach((e: any) => {
+        const eventDate = new Date(e.start_time);
+        eventDate.setHours(0, 0, 0, 0);
+        const dayKey = eventDate.toLocaleDateString(undefined, { weekday: "short" });
+        const b = buckets.get(dayKey);
+        if (b) {
+          if (e.classification === "meeting") b.meetings += 1;
+          // Simple busyness estimate based on event duration
+          const duration = (new Date(e.end_time).getTime() - new Date(e.start_time).getTime()) / (1000 * 60 * 60);
+          b.busyness = Math.min(100, b.busyness + Math.round(duration * 12));
+        }
+
+        const key = (e.classification || "meeting") as string;
+        typeCounts.set(key, (typeCounts.get(key) || 0) + 1);
+      });
+
+      const daySeries = Array.from(buckets.entries()).map(
+        ([day, v]) => ({ day, meetings: v.meetings, busyness: v.busyness })
+      );
+
+      const pie = Array.from(typeCounts.entries()).map(([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value,
+      }));
+
+      return { daySeries, pie };
+    },
+  });
 
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
@@ -148,6 +215,22 @@ const Dashboard = () => {
             
             {!isLoading && !error && (
               <EventList events={data?.events || []} />
+            )}
+
+            {/* Analytics Section */}
+            {!analyticsLoading && analyticsData && (analyticsData.daySeries.length > 0 || analyticsData.pie.length > 0) && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-gray-800">Weekly Analytics</h2>
+                <div className="grid lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 grid md:grid-cols-2 gap-6">
+                    <AnalyticsChart data={analyticsData.daySeries} type="bar" />
+                    <AnalyticsChart data={analyticsData.daySeries} type="line" />
+                  </div>
+                  <div className="lg:col-span-1">
+                    <AnalyticsPie data={analyticsData.pie} />
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
