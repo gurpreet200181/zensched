@@ -1,6 +1,7 @@
 
-import { Plus, Clock, Focus, Calendar, Lightbulb, Brain, Loader2 } from 'lucide-react';
+import { Plus, Clock, Focus, Calendar, Lightbulb, Brain, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface Recommendation {
   id: string;
@@ -44,6 +45,18 @@ const WellnessRecommendations = ({
       case 'PREP_NOTE': return 'text-green-600 bg-green-50';
       default: return 'text-gray-600 bg-gray-50';
     }
+  };
+
+  const handleApplyAction = (recommendation: Recommendation) => {
+    // Show toast with action details
+    toast.success(`Redirecting to calendar to apply: ${recommendation.title}`, {
+      description: "You'll be taken to your calendar to make the recommended changes.",
+    });
+    
+    // Open user's calendar in a new tab
+    // This opens the default calendar application or Google Calendar
+    const calendarUrl = 'https://calendar.google.com/calendar/u/0/r';
+    window.open(calendarUrl, '_blank');
   };
 
   return (
@@ -112,9 +125,11 @@ const WellnessRecommendations = ({
                     
                     <Button 
                       size="sm"
-                      className="wellness-button h-8 px-4 text-sm"
+                      className="wellness-button h-8 px-4 text-sm flex items-center gap-1"
+                      onClick={() => handleApplyAction(rec)}
                     >
                       Apply Action
+                      <ExternalLink className="h-3 w-3" />
                     </Button>
                   </div>
                 </div>
