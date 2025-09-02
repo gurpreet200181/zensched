@@ -93,9 +93,11 @@ export default function Analytics() {
             b.meetings += 1;
           }
           
-          // Simple busyness estimate based on event duration
-          const duration = (new Date(e.end_time).getTime() - new Date(e.start_time).getTime()) / (1000 * 60 * 60);
-          b.busyness = Math.min(100, b.busyness + Math.round(duration * 12));
+          // Only add to busyness if it's not a break (consistent with useCalendarData logic)
+          if (e.classification !== 'break' && !isPersonalOrBreak) {
+            const duration = (new Date(e.end_time).getTime() - new Date(e.start_time).getTime()) / (1000 * 60 * 60);
+            b.busyness = Math.min(100, b.busyness + Math.round(duration * 12));
+          }
         }
 
         const key = (e.classification || "meeting") as string;
