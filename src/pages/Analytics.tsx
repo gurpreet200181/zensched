@@ -82,7 +82,17 @@ export default function Analytics() {
         const dayKey = fmtDayShort(eventDate);
         const b = buckets.get(dayKey);
         if (b) {
-          if (e.classification === "meeting") b.meetings += 1;
+          // Count all events as meetings unless they're explicitly personal/break events
+          const isPersonalOrBreak = e.classification === "personal" || 
+                                   e.classification === "break" ||
+                                   (e.title && e.title.toLowerCase().includes("break")) ||
+                                   (e.title && e.title.toLowerCase().includes("lunch")) ||
+                                   (e.title && e.title.toLowerCase().includes("yoga"));
+          
+          if (!isPersonalOrBreak) {
+            b.meetings += 1;
+          }
+          
           // Simple busyness estimate based on event duration
           const duration = (new Date(e.end_time).getTime() - new Date(e.start_time).getTime()) / (1000 * 60 * 60);
           b.busyness = Math.min(100, b.busyness + Math.round(duration * 12));
