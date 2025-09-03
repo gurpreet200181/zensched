@@ -228,7 +228,7 @@ const HRDashboard = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Employee</TableHead>
-                <TableHead>7-Day Avg</TableHead>
+                <TableHead>Past 7 day Avg</TableHead>
                 <TableHead>Band</TableHead>
                 <TableHead>Trend</TableHead>
                 <TableHead>Avg Meetings/Day</TableHead>
