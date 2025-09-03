@@ -15,9 +15,12 @@ serve(async (req) => {
     const { action, data } = await req.json();
     const encryptionKey = Deno.env.get('CALENDAR_URL_ENC_KEY');
     
-    if (!encryptionKey) {
+    if (!encryptionKey || encryptionKey.trim() === '') {
+      console.error('CALENDAR_URL_ENC_KEY not found or empty');
       throw new Error('Encryption key not configured');
     }
+
+    console.log('Encryption key found, length:', encryptionKey.length);
 
     if (action === 'encrypt') {
       const encrypted = await encryptUrl(data.url, encryptionKey);
