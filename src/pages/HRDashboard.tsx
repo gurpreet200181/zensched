@@ -44,12 +44,14 @@ const HRDashboard = () => {
   const loadTeamHealth = async () => {
     setIsLoading(true);
     try {
+      // Add timestamp to bypass any caching
       const { data, error } = await supabase.functions.invoke('hr-endpoints', {
-        body: { route: 'team-health' },
+        body: { route: 'team-health', timestamp: Date.now() },
       });
       
       if (error) throw error;
       
+      console.log('Team health response:', data);
       setTeamData((data as any)?.team || []);
     } catch (error: any) {
       console.error('Error loading team health:', error);
@@ -133,10 +135,17 @@ const HRDashboard = () => {
   return (
     <div className="container mx-auto px-6 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Team Wellness Dashboard</h1>
-        <p className="text-gray-600">
-          Aggregate wellness metrics for your team members
-        </p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Team Wellness Dashboard</h1>
+            <p className="text-gray-600">
+              Aggregate wellness metrics for your team members
+            </p>
+          </div>
+          <Button onClick={loadTeamHealth} variant="outline">
+            Refresh Data
+          </Button>
+        </div>
       </div>
 
       {/* Overview Cards */}
