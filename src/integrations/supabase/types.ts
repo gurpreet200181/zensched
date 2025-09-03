@@ -83,6 +83,36 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_analytics: {
+        Row: {
+          after_hours_min: number | null
+          busyness_score: number
+          created_at: string | null
+          day: string
+          largest_free_min: number | null
+          meeting_count: number | null
+          user_id: string
+        }
+        Insert: {
+          after_hours_min?: number | null
+          busyness_score: number
+          created_at?: string | null
+          day: string
+          largest_free_min?: number | null
+          meeting_count?: number | null
+          user_id: string
+        }
+        Update: {
+          after_hours_min?: number | null
+          busyness_score?: number
+          created_at?: string | null
+          day?: string
+          largest_free_min?: number | null
+          meeting_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           attendees_count: number | null
@@ -139,12 +169,59 @@ export type Database = {
           },
         ]
       }
+      org_members: {
+        Row: {
+          org_id: string
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          org_id: string
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          org_id?: string
+          role?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orgs: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
           display_name: string | null
           email: string | null
           id: string
+          org_id: string | null
+          role: string | null
+          share_aggregate_with_org: boolean | null
           timezone: string | null
           updated_at: string
           user_id: string
@@ -156,6 +233,9 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+          org_id?: string | null
+          role?: string | null
+          share_aggregate_with_org?: boolean | null
           timezone?: string | null
           updated_at?: string
           user_id: string
@@ -167,6 +247,9 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+          org_id?: string | null
+          role?: string | null
+          share_aggregate_with_org?: boolean | null
           timezone?: string | null
           updated_at?: string
           user_id?: string
@@ -180,7 +263,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      hr_team_health: {
+        Args: { org_in: string }
+        Returns: {
+          avg_after_hours_min: number
+          avg_meetings: number
+          avg7_score: number
+          consent: boolean
+          display_name: string
+          trend_delta: number
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
