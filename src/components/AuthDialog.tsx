@@ -22,7 +22,7 @@ interface AuthFormData {
   email: string;
   password: string;
   displayName?: string;
-  role?: 'user' | 'hr' | 'admin';
+  role?: 'user' | 'hr';
   timezone?: string;
 }
 
@@ -271,7 +271,6 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
                             <SelectContent>
                               <SelectItem value="user">Employee</SelectItem>
                               <SelectItem value="hr">HR Manager</SelectItem>
-                              <SelectItem value="admin">Administrator</SelectItem>
                             </SelectContent>
                           </Select>
                           <p className="text-xs text-muted-foreground">

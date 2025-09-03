@@ -19,7 +19,7 @@ interface Profile {
   work_start_time: string;
   work_end_time: string;
   timezone: string;
-  role: 'user' | 'hr' | 'admin';
+  role: 'user' | 'hr';
   org_id: string | null;
   share_aggregate_with_org: boolean;
 }
@@ -144,20 +144,20 @@ const Profile = () => {
 
       if (orgError) throw orgError;
 
-      // Join as admin
+      // Join as hr  
       const { error: memberError } = await supabase
         .from('org_members')
         .insert({
           org_id: org.id,
           user_id: user.id,
-          role: 'admin'
+          role: 'hr'
         });
 
       if (memberError) throw memberError;
 
       toast({
         title: "Organization created",
-        description: "You've been added as an admin.",
+        description: "You've been added as HR manager.",
       });
       
       setNewOrgName('');

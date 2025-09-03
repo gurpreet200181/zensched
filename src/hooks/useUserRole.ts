@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useUserRole = () => {
-  const [role, setRole] = useState<'user' | 'hr' | 'admin' | null>(null);
+  const [role, setRole] = useState<'user' | 'hr' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -28,9 +28,9 @@ export const useUserRole = () => {
             .eq('user_id', user.id)
             .maybeSingle();
 
-          setRole((membership?.role || profile?.role || 'user') as 'user' | 'hr' | 'admin');
+          setRole((membership?.role || profile?.role || 'user') as 'user' | 'hr');
         } else {
-          setRole((profile?.role || 'user') as 'user' | 'hr' | 'admin');
+          setRole((profile?.role || 'user') as 'user' | 'hr');
         }
       } catch (error) {
         console.error('Error loading user role:', error);
@@ -43,5 +43,5 @@ export const useUserRole = () => {
     loadUserRole();
   }, []);
 
-  return { role, isLoading, isHROrAdmin: role === 'hr' || role === 'admin' };
+  return { role, isLoading, isHROrAdmin: role === 'hr' };
 };

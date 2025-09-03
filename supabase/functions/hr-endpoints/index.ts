@@ -15,7 +15,7 @@ interface TeamHealthData {
   consent: boolean;
 }
 
-async function requireOrgRole(supabase: any, roles = ['hr', 'admin']) {
+async function requireOrgRole(supabase: any, roles = ['hr']) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user?.id) throw new Error('unauthorized')
 
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
       const route = payload?.route
 
       if (route === 'team-health') {
-        const { orgId } = await requireOrgRole(supabase, ['hr', 'admin'])
+        const { orgId } = await requireOrgRole(supabase, ['hr'])
         console.log('Fetching team health for org (POST):', orgId)
         const { data, error } = await supabase.rpc('hr_team_health', { org_in: orgId })
         if (error) {
@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
       }
 
       if (route === 'user-health') {
-        await requireOrgRole(supabase, ['hr', 'admin'])
+        await requireOrgRole(supabase, ['hr'])
         const userId: string | undefined = payload?.userId
         if (!userId) throw new Error('missing_user_id')
 
@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
     // Also support direct GET calls for debugging
     // GET /hr-endpoints/team-health
     if (path === '/hr-endpoints/team-health' && req.method === 'GET') {
-      const { orgId } = await requireOrgRole(supabase, ['hr', 'admin'])
+      const { orgId } = await requireOrgRole(supabase, ['hr'])
       
       console.log('Fetching team health for org:', orgId)
       
@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
 
     // GET /hr-endpoints/user-health/:userId
     if (path.startsWith('/hr-endpoints/user-health/') && req.method === 'GET') {
-      await requireOrgRole(supabase, ['hr', 'admin'])
+      await requireOrgRole(supabase, ['hr'])
       
       const userId = path.split('/').pop()
       if (!userId) throw new Error('missing_user_id')
