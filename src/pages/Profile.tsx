@@ -426,8 +426,39 @@ const Profile = () => {
         {/* Calendar Management */}
         <Card>
           <CardHeader>
-            <CardTitle>
+            <CardTitle className="flex items-center justify-between">
               Calendar Integrations
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Calendar
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add ICS Calendar</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <div>
+                      <Label htmlFor="calendarUrl">Calendar URL (.ics)</Label>
+                      <Input
+                        id="calendarUrl"
+                        value={newCalendarUrl}
+                        onChange={(e) => setNewCalendarUrl(e.target.value)}
+                        placeholder="https://example.com/calendar.ics"
+                      />
+                    </div>
+                    <Button 
+                      onClick={addCalendar} 
+                      disabled={isAddingCalendar || !newCalendarUrl.trim()}
+                      className="w-full"
+                    >
+                      {isAddingCalendar ? 'Adding...' : 'Add Calendar'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </CardTitle>
           </CardHeader>
           <CardContent>
