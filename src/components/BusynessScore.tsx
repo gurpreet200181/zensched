@@ -28,7 +28,12 @@ const BusynessScore = ({ score, className = "" }: BusynessScoreProps) => {
           <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center">
             <span className="text-2xl font-bold text-gray-700">{score}</span>
           </div>
-          <div className="absolute inset-0 rounded-full border-4 border-transparent"
+          <div className={`absolute inset-0 rounded-full border-4 ${
+            level === 'calm' ? 'border-green-400' :
+            level === 'moderate' ? 'border-blue-400' :
+            level === 'busy' ? 'border-orange-400' :
+            'border-red-400'
+          }`}
                style={{
                  background: `conic-gradient(from 0deg, hsl(var(--busyness-${level})) ${score * 3.6}deg, transparent ${score * 3.6}deg)`,
                  WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), white calc(100% - 4px))',
