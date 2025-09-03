@@ -140,11 +140,6 @@ const WellnessRecommendations = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-medium text-gray-800">{rec.title}</h4>
-                      {rec.confidence && (
-                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                          {rec.confidence}% confidence
-                        </span>
-                      )}
                     </div>
                     
                     <p className="text-sm text-gray-600 mb-3">{rec.reason}</p>
