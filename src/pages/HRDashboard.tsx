@@ -34,8 +34,8 @@ const HRDashboard = () => {
   const [userAnalytics, setUserAnalytics] = useState<DailyAnalytic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUserDrawerOpen, setIsUserDrawerOpen] = useState(false);
-  const [bandFilter, setBandFilter] = useState<string>('');
-  const [trendFilter, setTrendFilter] = useState<string>('');
+  const [bandFilter, setBandFilter] = useState<string>('all');
+  const [trendFilter, setTrendFilter] = useState<string>('all');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -112,9 +112,9 @@ const HRDashboard = () => {
 
   const filteredTeamData = teamData.filter((member) => {
     const band = getBusynessBand(member.avg7_score);
-    const bandMatch = !bandFilter || band.label.toLowerCase() === bandFilter;
+    const bandMatch = bandFilter === 'all' || band.label.toLowerCase() === bandFilter;
     
-    const trendMatch = !trendFilter || 
+    const trendMatch = trendFilter === 'all' || 
       (trendFilter === 'improving' && member.trend_delta < -5) ||
       (trendFilter === 'worsening' && member.trend_delta > 5) ||
       (trendFilter === 'stable' && Math.abs(member.trend_delta) <= 5);
@@ -199,7 +199,7 @@ const HRDashboard = () => {
             <SelectValue placeholder="Filter by stress level" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All stress levels</SelectItem>
+            <SelectItem value="all">All stress levels</SelectItem>
             <SelectItem value="calm">Calm (0-39)</SelectItem>
             <SelectItem value="moderate">Moderate (40-59)</SelectItem>
             <SelectItem value="busy">Busy (60-79)</SelectItem>
@@ -212,7 +212,7 @@ const HRDashboard = () => {
             <SelectValue placeholder="Filter by trend" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All trends</SelectItem>
+            <SelectItem value="all">All trends</SelectItem>
             <SelectItem value="improving">Improving</SelectItem>
             <SelectItem value="stable">Stable</SelectItem>
             <SelectItem value="worsening">Worsening</SelectItem>
