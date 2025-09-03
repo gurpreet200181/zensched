@@ -16,8 +16,14 @@ interface TeamHealthData {
 }
 
 async function requireOrgRole(supabase: any, roles = ['hr']) {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user?.id) throw new Error('unauthorized')
+  console.log('=== Role Check Debug ===')
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  console.log('Auth check:', { user: user?.id, email: user?.email, error: userError })
+  
+  if (!user?.id) {
+    console.log('No user found - unauthorized')
+    throw new Error('unauthorized')
+  }
 
   // Load profile + membership
   const { data: prof, error: profError } = await supabase
@@ -26,22 +32,28 @@ async function requireOrgRole(supabase: any, roles = ['hr']) {
     .eq('user_id', user.id)
     .single()
 
+  console.log('Profile query:', { prof, profError })
+
   if (profError || !prof?.org_id) {
     console.error('Profile error:', profError)
+    console.log('No org_id found:', prof)
     throw new Error('no_org')
   }
 
-  const { data: mem } = await supabase
+  const { data: mem, error: memError } = await supabase
     .from('org_members')
     .select('role')
     .eq('org_id', prof.org_id)
     .eq('user_id', user.id)
     .maybeSingle()
 
+  console.log('Membership query:', { mem, memError })
+
   const effective = mem?.role || prof?.role || 'user'
   console.log('User role check:', { userId: user.id, orgId: prof.org_id, effective, required: roles })
   
   if (!roles.includes(effective)) {
+    console.log('Role check failed:', { effective, required: roles })
     throw new Error('forbidden')
   }
   
@@ -57,7 +69,10 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } }
+      }
     )
 
     const url = new URL(req.url)
