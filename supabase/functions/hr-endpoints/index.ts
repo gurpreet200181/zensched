@@ -12,7 +12,6 @@ interface TeamHealthData {
   trend_delta: number;
   avg_meetings: number;
   avg_after_hours_min: number;
-  consent: boolean;
 }
 
 async function requireOrgRole(supabase: any, roles = ['hr']) {

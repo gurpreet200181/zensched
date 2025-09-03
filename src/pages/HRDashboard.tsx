@@ -17,7 +17,6 @@ interface TeamMember {
   trend_delta: number;
   avg_meetings: number;
   avg_after_hours_min: number;
-  consent: boolean;
 }
 
 interface DailyAnalytic {
@@ -96,15 +95,6 @@ const HRDashboard = () => {
   };
 
   const handleRowClick = (member: TeamMember) => {
-    if (!member.consent) {
-      toast({
-        title: "No consent",
-        description: "This employee hasn't consented to data sharing.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
     setSelectedUser(member);
     loadUserHealth(member.user_id);
     setIsUserDrawerOpen(true);
@@ -122,11 +112,10 @@ const HRDashboard = () => {
     return bandMatch && trendMatch;
   });
 
-  const consentedMembers = teamData.filter(m => m.consent);
-  const avgBusyness = consentedMembers.length > 0 
-    ? Math.round(consentedMembers.reduce((sum, m) => sum + m.avg7_score, 0) / consentedMembers.length)
+  const avgBusyness = teamData.length > 0 
+    ? Math.round(teamData.reduce((sum, m) => sum + m.avg7_score, 0) / teamData.length)
     : 0;
-  const highStressCount = consentedMembers.filter(m => m.avg7_score >= 80).length;
+  const highStressCount = teamData.filter(m => m.avg7_score >= 80).length;
 
   if (isLoading) {
     return (
@@ -146,7 +135,7 @@ const HRDashboard = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">Team Wellness Dashboard</h1>
         <p className="text-gray-600">
-          Aggregate wellness metrics for team members who have consented to data sharing
+          Aggregate wellness metrics for your team members
         </p>
       </div>
 
@@ -158,9 +147,9 @@ const HRDashboard = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{consentedMembers.length}</div>
+            <div className="text-2xl font-bold">{teamData.length}</div>
             <p className="text-xs text-muted-foreground">
-              {teamData.length - consentedMembers.length} haven't consented
+              Total team members
             </p>
           </CardContent>
         </Card>
@@ -235,7 +224,6 @@ const HRDashboard = () => {
                 <TableHead>Trend</TableHead>
                 <TableHead>Avg Meetings/Day</TableHead>
                 <TableHead>After Hours (min/day)</TableHead>
-                <TableHead>Consent</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -244,7 +232,7 @@ const HRDashboard = () => {
                 return (
                   <TableRow 
                     key={member.user_id}
-                    className={member.consent ? "cursor-pointer hover:bg-gray-50" : "opacity-60"}
+                    className="cursor-pointer hover:bg-gray-50"
                     onClick={() => handleRowClick(member)}
                   >
                     <TableCell className="font-medium">{member.display_name}</TableCell>
@@ -267,11 +255,6 @@ const HRDashboard = () => {
                     </TableCell>
                     <TableCell>{member.avg_meetings}</TableCell>
                     <TableCell>{member.avg_after_hours_min}</TableCell>
-                    <TableCell>
-                      <Badge variant={member.consent ? "default" : "secondary"}>
-                        {member.consent ? "Yes" : "No"}
-                      </Badge>
-                    </TableCell>
                   </TableRow>
                 );
               })}
