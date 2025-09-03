@@ -144,38 +144,19 @@ const Profile = () => {
   const loadOrganizations = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
-    // Step 1: fetch memberships (RLS: only own rows)
-    const { data: memberships, error: memberError } = await supabase
-      .from('org_members')
-      .select('org_id')
-      .eq('user_id', user.id);
-
-    if (memberError) {
-      console.error('Error loading organizations (memberships):', memberError);
-      setOrganizations([]);
-      return;
-    }
-
-    const orgIds = (memberships || []).map((m: any) => m.org_id).filter(Boolean);
-    if (orgIds.length === 0) {
-      setOrganizations([]);
-      return;
-    }
-
-    // Step 2: fetch org details for those IDs (RLS allows viewing own orgs)
-    const { data: orgs, error: orgsError } = await supabase
+    
+    // Load all organizations for selection dropdown
+    const { data: orgs, error } = await supabase
       .from('orgs')
       .select('id, name')
-      .in('id', orgIds);
+      .order('name');
 
-    if (orgsError) {
-      console.error('Error loading organizations (details):', orgsError);
+    if (error) {
+      console.error('Error loading organizations:', error);
       setOrganizations([]);
-      return;
+    } else {
+      setOrganizations(orgs || []);
     }
-
-    setOrganizations(orgs || []);
   };
 
   const createOrganization = async () => {
