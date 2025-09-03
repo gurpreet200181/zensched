@@ -404,9 +404,6 @@ const Profile = () => {
                 Contact your admin to change your role
               </p>
             </div>
-            <Button onClick={updateProfile} disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Save Changes'}
-            </Button>
           </CardContent>
         </Card>
 
