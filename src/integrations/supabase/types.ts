@@ -269,7 +269,6 @@ export type Database = {
           avg_after_hours_min: number
           avg_meetings: number
           avg7_score: number
-          consent: boolean
           display_name: string
           trend_delta: number
           user_id: string
