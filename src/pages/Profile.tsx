@@ -51,6 +51,7 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isAddingCalendar, setIsAddingCalendar] = useState(false);
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
+  const [isCalendarDialogOpen, setIsCalendarDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -275,6 +276,7 @@ const Profile = () => {
           description: "Your calendar has been successfully added.",
         });
         setNewCalendarUrl('');
+        setIsCalendarDialogOpen(false);
         loadCalendars();
       }
     } catch (error: any) {
@@ -429,7 +431,7 @@ const Profile = () => {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               Calendar Integrations
-              <Dialog>
+              <Dialog open={isCalendarDialogOpen} onOpenChange={setIsCalendarDialogOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm" disabled={calendars.length > 0}>
                     <Plus className="h-4 w-4 mr-2" />
