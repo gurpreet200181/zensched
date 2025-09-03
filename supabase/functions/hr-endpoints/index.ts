@@ -63,6 +63,59 @@ Deno.serve(async (req) => {
     const url = new URL(req.url)
     const path = url.pathname
 
+    // Support supabase.functions.invoke (POST) with JSON routing
+    if (req.method === 'POST') {
+      let payload: any = {}
+      try {
+        payload = await req.json()
+      } catch (_) {
+        payload = {}
+      }
+
+      const route = payload?.route
+
+      if (route === 'team-health') {
+        const { orgId } = await requireOrgRole(supabase, ['hr', 'admin'])
+        console.log('Fetching team health for org (POST):', orgId)
+        const { data, error } = await supabase.rpc('hr_team_health', { org_in: orgId })
+        if (error) {
+          console.error('Team health error:', error)
+          throw error
+        }
+        return new Response(
+          JSON.stringify({ team: data || [] }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      if (route === 'user-health') {
+        await requireOrgRole(supabase, ['hr', 'admin'])
+        const userId: string | undefined = payload?.userId
+        if (!userId) throw new Error('missing_user_id')
+
+        console.log('Fetching user health (POST) for:', userId)
+        const fourteenDaysAgo = new Date()
+        fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
+        const { data, error } = await supabase
+          .from('daily_analytics')
+          .select('day, busyness_score, meeting_count, after_hours_min, largest_free_min, user_id')
+          .eq('user_id', userId)
+          .gte('day', fourteenDaysAgo.toISOString().slice(0, 10))
+          .order('day', { ascending: true })
+
+        if (error) {
+          console.error('User health error:', error)
+          throw error
+        }
+
+        return new Response(
+          JSON.stringify({ days: data || [] }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
+    // Also support direct GET calls for debugging
     // GET /hr-endpoints/team-health
     if (path === '/hr-endpoints/team-health' && req.method === 'GET') {
       const { orgId } = await requireOrgRole(supabase, ['hr', 'admin'])

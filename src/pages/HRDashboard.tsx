@@ -45,11 +45,13 @@ const HRDashboard = () => {
   const loadTeamHealth = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('hr-endpoints/team-health');
+      const { data, error } = await supabase.functions.invoke('hr-endpoints', {
+        body: { route: 'team-health' },
+      });
       
       if (error) throw error;
       
-      setTeamData(data.team || []);
+      setTeamData((data as any)?.team || []);
     } catch (error: any) {
       console.error('Error loading team health:', error);
       toast({
@@ -63,11 +65,13 @@ const HRDashboard = () => {
 
   const loadUserHealth = async (userId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke(`hr-endpoints/user-health/${userId}`);
+      const { data, error } = await supabase.functions.invoke('hr-endpoints', {
+        body: { route: 'user-health', userId },
+      });
       
       if (error) throw error;
       
-      setUserAnalytics(data.days || []);
+      setUserAnalytics((data as any)?.days || []);
     } catch (error: any) {
       console.error('Error loading user health:', error);
       toast({
