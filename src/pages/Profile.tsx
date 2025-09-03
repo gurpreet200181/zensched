@@ -321,7 +321,20 @@ const Profile = () => {
 
   return (
     <div className="container mx-auto px-6 py-8 max-w-4xl">
-      <h1 className="text-3xl font-bold text-gray-800 mb-8">Profile Settings</h1>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">Profile Settings</h1>
+        {!profile?.display_name && (
+          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+            <div className="flex">
+              <div className="ml-3">
+                <p className="text-sm text-blue-700">
+                  <strong>Welcome!</strong> Complete your profile setup below to get started with calendar tracking and wellness insights.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="space-y-6">
         {/* Profile Information */}
@@ -366,63 +379,82 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        {/* Organization Settings */}
+        {/* Working Hours */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              Organization & Privacy
-            </CardTitle>
+            <CardTitle>Working Hours</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="organization">Organization</Label>
-              <div className="flex gap-2">
-                <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select organization" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No organization</SelectItem>
-                    {organizations.map((org) => (
-                      <SelectItem key={org.id} value={org.id}>
-                        {org.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Create Organization</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 pt-4">
-                      <div>
-                        <Label htmlFor="orgName">Organization Name</Label>
-                        <Input
-                          id="orgName"
-                          value={newOrgName}
-                          onChange={(e) => setNewOrgName(e.target.value)}
-                          placeholder="Enter organization name"
-                        />
-                      </div>
-                      <Button 
-                        onClick={createOrganization} 
-                        disabled={isCreatingOrg || !newOrgName.trim()}
-                        className="w-full"
-                      >
-                        {isCreatingOrg ? 'Creating...' : 'Create Organization'}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="workStart">Start Time</Label>
+                <Input
+                  id="workStart"
+                  type="time"
+                  value={profile?.work_start_time || '09:00'}
+                  onChange={(e) => {
+                    if (profile) {
+                      setProfile({
+                        ...profile,
+                        work_start_time: e.target.value
+                      });
+                    }
+                  }}
+                />
+              </div>
+              <div>
+                <Label htmlFor="workEnd">End Time</Label>
+                <Input
+                  id="workEnd"
+                  type="time"
+                  value={profile?.work_end_time || '17:00'}
+                  onChange={(e) => {
+                    if (profile) {
+                      setProfile({
+                        ...profile,
+                        work_end_time: e.target.value
+                      });
+                    }
+                  }}
+                />
               </div>
             </div>
+            <Button 
+              onClick={async () => {
+                if (!profile) return;
+                
+                setIsLoading(true);
+                try {
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (!user) throw new Error('Not authenticated');
+
+                  const { error } = await supabase
+                    .from('profiles')
+                    .update({ 
+                      work_start_time: profile.work_start_time,
+                      work_end_time: profile.work_end_time
+                    })
+                    .eq('user_id', user.id);
+
+                  if (error) throw error;
+
+                  toast({
+                    title: "Working hours updated",
+                    description: "Your working hours have been successfully updated.",
+                  });
+                } catch (error: any) {
+                  toast({
+                    title: "Error updating working hours",
+                    description: error.message,
+                    variant: "destructive"
+                  });
+                }
+                setIsLoading(false);
+              }} 
+              disabled={isLoading}
+            >
+              {isLoading ? 'Saving...' : 'Save Working Hours'}
+            </Button>
           </CardContent>
         </Card>
 
@@ -536,6 +568,79 @@ const Profile = () => {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Organization Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Organization & Privacy
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="organization">Organization</Label>
+              <div className="flex gap-2">
+                <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select organization" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No organization</SelectItem>
+                    {organizations.map((org) => (
+                      <SelectItem key={org.id} value={org.id}>
+                        {org.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create Organization</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <div>
+                        <Label htmlFor="orgName">Organization Name</Label>
+                        <Input
+                          id="orgName"
+                          value={newOrgName}
+                          onChange={(e) => setNewOrgName(e.target.value)}
+                          placeholder="Enter organization name"
+                        />
+                      </div>
+                      <Button 
+                        onClick={createOrganization} 
+                        disabled={isCreatingOrg || !newOrgName.trim()}
+                        className="w-full"
+                      >
+                        {isCreatingOrg ? 'Creating...' : 'Create Organization'}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Share analytics with organization</Label>
+                <p className="text-sm text-gray-500">
+                  Allow HR managers in your organization to view your wellness metrics
+                </p>
+              </div>
+              <Switch
+                checked={shareWithOrg}
+                onCheckedChange={setShareWithOrg}
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

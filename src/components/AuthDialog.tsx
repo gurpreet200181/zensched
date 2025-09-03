@@ -86,7 +86,7 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: `${window.location.origin}/profile`,
           data: {
             display_name: formData.displayName,
             role: formData.role,
