@@ -447,42 +447,6 @@ const Profile = () => {
                 />
               </div>
             </div>
-            <Button 
-              onClick={async () => {
-                if (!profile) return;
-                
-                setIsLoading(true);
-                try {
-                  const { data: { user } } = await supabase.auth.getUser();
-                  if (!user) throw new Error('Not authenticated');
-
-                  const { error } = await supabase
-                    .from('profiles')
-                    .update({ 
-                      work_start_time: profile.work_start_time,
-                      work_end_time: profile.work_end_time
-                    })
-                    .eq('user_id', user.id);
-
-                  if (error) throw error;
-
-                  toast({
-                    title: "Working hours updated",
-                    description: "Your working hours have been successfully updated.",
-                  });
-                } catch (error: any) {
-                  toast({
-                    title: "Error updating working hours",
-                    description: error.message,
-                    variant: "destructive"
-                  });
-                }
-                setIsLoading(false);
-              }} 
-              disabled={isLoading}
-            >
-              {isLoading ? 'Saving...' : 'Save Working Hours'}
-            </Button>
           </CardContent>
         </Card>
 
