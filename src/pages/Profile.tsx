@@ -116,15 +116,24 @@ const Profile = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    // Query organizations through org_members to respect RLS
     const { data, error } = await supabase
-      .from('orgs')
-      .select('*')
-      .order('name');
+      .from('org_members')
+      .select(`
+        org_id,
+        orgs!inner (
+          id,
+          name
+        )
+      `)
+      .eq('user_id', user.id);
 
     if (error) {
       console.error('Error loading organizations:', error);
     } else {
-      setOrganizations(data || []);
+      // Extract organizations from the join result
+      const orgs = (data || []).map(item => item.orgs).filter(org => org !== null);
+      setOrganizations(orgs);
     }
   };
 
