@@ -163,6 +163,39 @@ export class CalendarSyncService {
         .update({ last_sync: new Date().toISOString() })
         .eq('id', integration.id);
 
+      // Populate daily analytics for the user based on the synced events
+      try {
+        // Determine a reasonable date range (last 30 days up to today)
+        const minStart = new Date(Math.min(...relevantEvents.map(e => e.startTime.getTime())));
+        const maxEnd = new Date(Math.max(...relevantEvents.map(e => e.endTime.getTime())));
+
+        const today = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+
+        // Clamp start to at most 30 days ago, and do not go beyond today
+        const analyticsStart = new Date(Math.max(thirtyDaysAgo.getTime(), Math.min(minStart.getTime(), today.getTime())));
+        const analyticsEnd = new Date(Math.min(maxEnd.getTime(), today.getTime()));
+
+        if (analyticsStart <= analyticsEnd) {
+          console.log('Backfilling daily analytics from', analyticsStart.toISOString().slice(0,10), 'to', analyticsEnd.toISOString().slice(0,10));
+          const { error: analyticsError } = await supabase.rpc('populate_daily_analytics_from_events', {
+            user_id_param: integration.user_id,
+            start_date: analyticsStart.toISOString().slice(0, 10),
+            end_date: analyticsEnd.toISOString().slice(0, 10),
+          });
+          if (analyticsError) {
+            console.error('Failed to populate daily analytics:', analyticsError);
+          } else {
+            console.log('Daily analytics populated successfully');
+          }
+        } else {
+          console.log('Skipping analytics backfill: no past-dated events in range');
+        }
+      } catch (err) {
+        console.error('Error during analytics backfill:', err);
+      }
+
     } catch (error) {
       console.error(`Error syncing ICS calendar ${integration.calendar_url}:`, error);
       throw error; // Re-throw to be caught by the caller
