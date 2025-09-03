@@ -116,25 +116,37 @@ const Profile = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Query organizations through org_members to respect RLS
-    const { data, error } = await supabase
+    // Step 1: fetch memberships (RLS: only own rows)
+    const { data: memberships, error: memberError } = await supabase
       .from('org_members')
-      .select(`
-        org_id,
-        orgs!inner (
-          id,
-          name
-        )
-      `)
+      .select('org_id')
       .eq('user_id', user.id);
 
-    if (error) {
-      console.error('Error loading organizations:', error);
-    } else {
-      // Extract organizations from the join result
-      const orgs = (data || []).map(item => item.orgs).filter(org => org !== null);
-      setOrganizations(orgs);
+    if (memberError) {
+      console.error('Error loading organizations (memberships):', memberError);
+      setOrganizations([]);
+      return;
     }
+
+    const orgIds = (memberships || []).map((m: any) => m.org_id).filter(Boolean);
+    if (orgIds.length === 0) {
+      setOrganizations([]);
+      return;
+    }
+
+    // Step 2: fetch org details for those IDs (RLS allows viewing own orgs)
+    const { data: orgs, error: orgsError } = await supabase
+      .from('orgs')
+      .select('id, name')
+      .in('id', orgIds);
+
+    if (orgsError) {
+      console.error('Error loading organizations (details):', orgsError);
+      setOrganizations([]);
+      return;
+    }
+
+    setOrganizations(orgs || []);
   };
 
   const createOrganization = async () => {
