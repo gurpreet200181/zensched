@@ -6,11 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
+const KEY_PRIMARY = Deno.env.get('ELEVENLABS_API_KEY') || '';
+const KEY_FALLBACK = Deno.env.get('ELEVENLABS_API_KEY_V2') || '';
+const ACTIVE_KEY = KEY_PRIMARY || KEY_FALLBACK;
 
-// Debug: Check all environment variables
+// Debug: Check all environment variables and key presence (length only)
 console.log('All env vars:', Object.keys(Deno.env.toObject()));
-console.log('ELEVENLABS_API_KEY value:', ELEVENLABS_API_KEY);
+console.log('ELEVENLABS_API_KEY present:', KEY_PRIMARY.length > 0, 'len:', KEY_PRIMARY.length);
+console.log('ELEVENLABS_API_KEY_V2 present:', KEY_FALLBACK.length > 0, 'len:', KEY_FALLBACK.length);
 console.log('GROQ_API_KEY exists:', !!Deno.env.get('GROQ_API_KEY'));
 
 // Voice ID mapping
@@ -30,10 +33,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (!ELEVENLABS_API_KEY) {
-    console.error('ELEVENLABS_API_KEY is not set');
+  if (!ACTIVE_KEY) {
+    console.error('No ElevenLabs API key found in ELEVENLABS_API_KEY or ELEVENLABS_API_KEY_V2');
     return new Response(
-      JSON.stringify({ error: 'ElevenLabs API key not configured' }),
+      JSON.stringify({ 
+        error: 'ElevenLabs API key not configured',
+        details: {
+          ELEVENLABS_API_KEY_present: !!Deno.env.get('ELEVENLABS_API_KEY'),
+          ELEVENLABS_API_KEY_V2_present: !!Deno.env.get('ELEVENLABS_API_KEY_V2'),
+        }
+      }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -41,8 +50,8 @@ serve(async (req) => {
     );
   }
 
-  console.log('ELEVENLABS_API_KEY exists:', !!ELEVENLABS_API_KEY);
-  console.log('API key starts with:', ELEVENLABS_API_KEY?.substring(0, 8) + '...');
+  console.log('Using ElevenLabs key from:', KEY_PRIMARY ? 'ELEVENLABS_API_KEY' : (KEY_FALLBACK ? 'ELEVENLABS_API_KEY_V2' : 'none'));
+  console.log('Active key length:', ACTIVE_KEY.length);
 
   try {
     const { text, voice = 'Sarah' } = await req.json();
@@ -69,7 +78,7 @@ serve(async (req) => {
         headers: {
           'Accept': 'audio/mpeg',
           'Content-Type': 'application/json',
-          'xi-api-key': ELEVENLABS_API_KEY,
+          'xi-api-key': ACTIVE_KEY,
         },
         body: JSON.stringify({
           text: text,
