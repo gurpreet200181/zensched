@@ -215,13 +215,15 @@ const Profile = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Update profile
+      // Update profile with all fields
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ 
           display_name: displayName,
           org_id: selectedOrgId === 'none' ? null : selectedOrgId,
-          share_aggregate_with_org: shareWithOrg
+          share_aggregate_with_org: shareWithOrg,
+          work_start_time: profile.work_start_time,
+          work_end_time: profile.work_end_time
         })
         .eq('user_id', user.id);
 
@@ -251,7 +253,7 @@ const Profile = () => {
 
       toast({
         title: "Profile updated",
-        description: "Your profile has been successfully updated.",
+        description: "All profile information has been successfully updated.",
       });
       
       setProfile({
@@ -622,6 +624,17 @@ const Profile = () => {
             </div>
           </CardContent>
         </Card>
+        
+        {/* Save Button */}
+        <div className="flex justify-end pt-6">
+          <Button 
+            onClick={updateProfile} 
+            disabled={isLoading}
+            className="px-8 py-2 wellness-button"
+          >
+            {isLoading ? 'Saving...' : 'Save Profile'}
+          </Button>
+        </div>
       </div>
     </div>
   );
