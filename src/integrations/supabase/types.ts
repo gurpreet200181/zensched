@@ -274,6 +274,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      populate_daily_analytics_from_events: {
+        Args: { end_date: string; start_date: string; user_id_param: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
