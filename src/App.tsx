@@ -22,47 +22,52 @@ function AuthRouteEffects() {
   const location = useLocation();
 
   useEffect(() => {
-    // Handle authentication state changes
-    const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Handle authentication state changes (no async work directly in callback)
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("[auth] state change:", event, session?.user?.id);
-      
-      if (event === "SIGNED_IN" && session?.user) {
-        // Check if user has completed profile setup
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('display_name, work_start_time, work_end_time')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
 
-        // If no profile or incomplete setup, redirect to profile
-        if (!profile || !profile.display_name) {
+      if (event === "SIGNED_IN" && session?.user) {
+        const fromSignupLink = window.location.hash.includes('type=signup') || window.location.hash.includes('access_token');
+        if (fromSignupLink) {
           navigate("/profile", { replace: true });
-        } else {
-          navigate("/dashboard", { replace: true });
+          return;
         }
+        // Defer DB calls to avoid deadlocks
+        setTimeout(async () => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name')
+            .eq('user_id', session.user!.id)
+            .maybeSingle();
+          if (!profile || !profile.display_name) {
+            navigate("/profile", { replace: true });
+          } else {
+            navigate("/dashboard", { replace: true });
+          }
+        }, 0);
       }
-      
+
       if (event === "SIGNED_OUT") {
         navigate("/", { replace: true });
       }
     });
 
-    // Also check current session on mount
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (data.session && location.pathname === "/") {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('display_name, work_start_time, work_end_time')
-          .eq('user_id', data.session.user.id)
-          .maybeSingle();
-
-        if (!profile || !profile.display_name) {
+    // On initial load, if returning from email link, let Supabase process the hash then route
+    if (window.location.hash.includes('access_token') || window.location.hash.includes('type=signup')) {
+      setTimeout(async () => {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
           navigate("/profile", { replace: true });
-        } else {
+        }
+      }, 0);
+    } else {
+      // Also check current session on mount for normal navigations
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session && location.pathname === "/") {
           navigate("/dashboard", { replace: true });
         }
-      }
-    });
+      });
+    }
 
     return () => {
       sub.subscription.unsubscribe();
