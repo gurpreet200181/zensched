@@ -32,7 +32,7 @@ function AuthRouteEffects() {
           navigate("/profile", { replace: true });
           return;
         }
-        // Defer DB calls to avoid deadlocks
+        // Defer DB calls to avoid deadlocks - only for normal sign-ins, not email confirmations
         setTimeout(async () => {
           const { data: profile } = await supabase
             .from('profiles')
