@@ -22,17 +22,24 @@ function AuthRouteEffects() {
   const location = useLocation();
 
   useEffect(() => {
+    // Check if this is an email confirmation flow
+    const isEmailConfirmation = window.location.hash.includes('access_token') || 
+                               window.location.hash.includes('type=signup') ||
+                               window.location.hash.includes('type=email');
+
     // Handle authentication state changes (no async work directly in callback)
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("[auth] state change:", event, session?.user?.id);
+      console.log("[auth] state change:", event, session?.user?.id, "isEmailConfirmation:", isEmailConfirmation);
 
       if (event === "SIGNED_IN" && session?.user) {
-        const fromSignupLink = window.location.hash.includes('type=signup') || window.location.hash.includes('access_token');
-        if (fromSignupLink) {
+        // If this is from email confirmation, ALWAYS go to profile and stay there
+        if (isEmailConfirmation) {
+          console.log("[auth] Email confirmation detected, navigating to profile");
           navigate("/profile", { replace: true });
           return;
         }
-        // Defer DB calls to avoid deadlocks - only for normal sign-ins, not email confirmations
+        
+        // For normal sign-ins, check profile completeness
         setTimeout(async () => {
           const { data: profile } = await supabase
             .from('profiles')
@@ -53,13 +60,15 @@ function AuthRouteEffects() {
     });
 
     // On initial load, if returning from email link, let Supabase process the hash then route
-    if (window.location.hash.includes('access_token') || window.location.hash.includes('type=signup')) {
+    if (isEmailConfirmation) {
+      console.log("[auth] Initial email confirmation detected");
       setTimeout(async () => {
         const { data } = await supabase.auth.getSession();
         if (data.session) {
+          console.log("[auth] Session confirmed, navigating to profile");
           navigate("/profile", { replace: true });
         }
-      }, 0);
+      }, 100); // Slightly longer delay to ensure session is set
     } else {
       // Also check current session on mount for normal navigations
       supabase.auth.getSession().then(({ data }) => {
