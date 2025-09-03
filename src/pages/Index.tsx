@@ -3,9 +3,11 @@ import { useState } from 'react';
 import WellnessHero from '@/components/WellnessHero';
 import DashboardDemo from '@/components/DashboardDemo';
 import { Button } from '@/components/ui/button';
+import AuthDialog from '@/components/AuthDialog';
 
 const Index = () => {
   const [showDemo, setShowDemo] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   if (showDemo) {
     return <DashboardDemo />;
@@ -13,6 +15,17 @@ const Index = () => {
 
   return (
     <div className="relative">
+      {/* Login button in top right corner */}
+      <div className="fixed top-6 right-6 z-50">
+        <Button 
+          onClick={() => setShowAuthDialog(true)}
+          variant="outline"
+          className="bg-white/90 backdrop-blur-md hover:bg-white text-gray-900 border border-gray-200 hover:border-gray-300 shadow-lg"
+        >
+          Log In
+        </Button>
+      </div>
+
       <WellnessHero />
       
       {/* Demo trigger */}
@@ -65,6 +78,8 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
   );
 };
