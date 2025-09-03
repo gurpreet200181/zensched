@@ -227,7 +227,7 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
                 />
 
                 <Button type="submit" className="w-full wellness-button" disabled={isLoading}>
-                  {isLoading ? 'Loading...' : 'Next'}
+                  {isLoading ? 'Loading...' : 'Create Account'}
                 </Button>
 
                 <div className="text-center text-sm text-muted-foreground">
