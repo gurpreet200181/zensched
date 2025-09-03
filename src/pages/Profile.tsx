@@ -628,19 +628,6 @@ const Profile = () => {
                 </Dialog>
               </div>
             </div>
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Share analytics with organization</Label>
-                <p className="text-sm text-gray-500">
-                  Allow HR managers in your organization to view your wellness metrics
-                </p>
-              </div>
-              <Switch
-                checked={shareWithOrg}
-                onCheckedChange={setShareWithOrg}
-              />
-            </div>
           </CardContent>
         </Card>
       </div>
