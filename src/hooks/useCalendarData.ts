@@ -105,8 +105,21 @@ export function useCalendarData(selectedDate: Date = new Date()) {
       const breakHours = Math.round((breakMinutes / 60) * 10) / 10;
       const freeHours = Math.max(0, workDayHours - busyHours + breakHours);
       
-      // Calculate busyness score (0-100) - breaks don't increase busyness
-      const busynessScore = Math.min(100, Math.round((busyHours / workDayHours) * 100));
+      // Try to get the stored busyness score from daily_analytics first
+      let busynessScore = 0;
+      const { data: analyticsData } = await supabase
+        .from('daily_analytics')
+        .select('busyness_score')
+        .eq('user_id', sessionData.session.user.id)
+        .eq('day', selectedDate.toISOString().split('T')[0])
+        .maybeSingle();
+      
+      if (analyticsData?.busyness_score !== undefined) {
+        busynessScore = analyticsData.busyness_score;
+      } else {
+        // Fallback to calculated score if no stored data
+        busynessScore = Math.min(100, Math.round((busyHours / workDayHours) * 100));
+      }
 
       console.log('Calendar data processed:', {
         totalEvents: calendarEvents.length,

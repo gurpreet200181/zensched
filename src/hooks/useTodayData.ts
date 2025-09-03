@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -58,12 +57,24 @@ export function useTodayData() {
 
       if (eventsError) throw eventsError;
 
-      // Try to load a saved busyness score; if missing, compute a quick estimate
+      // Try to load the stored busyness score from daily_analytics; if missing, compute estimate
       const { data: scoreRow } = await supabase
-        .from("busyness_scores")
-        .select("*")
-        .eq("date", start.toISOString().slice(0, 10))
+        .from("daily_analytics")
+        .select("busyness_score")
+        .eq("user_id", sessionData.session.user.id)
+        .eq("day", start.toISOString().slice(0, 10))
         .maybeSingle();
+
+      // Calculate fallback score based on actual event duration (like database formula)
+      const totalBusyMinutes = (events || []).reduce((acc: number, e: any) => {
+        const classification = e.classification || 'meeting';
+        // Don't count breaks as busy time
+        if (classification === 'break') return acc;
+        return acc + minutesBetween(new Date(e.start_time), new Date(e.end_time));
+      }, 0);
+      
+      const computedScore = Math.min(100, Math.round((totalBusyMinutes / 480) * 100));
+      const score = scoreRow?.busyness_score ?? computedScore;
 
       const uiEvents: UIEvent[] =
         (events || []).map((e: any) => {
@@ -90,12 +101,6 @@ export function useTodayData() {
         return acc;
       }, 0);
 
-      const computedScore = Math.min(
-        100,
-        meetingCount * 12 + Math.round(focusMinutes / 6)
-      );
-
-      const score = scoreRow?.score ?? computedScore;
       const summary =
         uiEvents.length > 0
           ? `You have ${meetingCount} meetings; best focus window appears after your last meeting.`
@@ -111,4 +116,3 @@ export function useTodayData() {
     },
   });
 }
-
