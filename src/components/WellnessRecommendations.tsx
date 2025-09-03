@@ -110,13 +110,6 @@ const WellnessRecommendations = ({
       {summary && (
         <div className="bg-calm-gradient p-4 rounded-xl mb-4 border border-calm-200/30">
           <p className="text-sm text-gray-700">{summary}</p>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="mt-2 text-calm-600 hover:text-calm-700"
-          >
-            🔊 Listen to summary
-          </Button>
         </div>
       )}
 
