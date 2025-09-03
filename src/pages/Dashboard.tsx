@@ -62,7 +62,7 @@ const Dashboard = () => {
                 <div>
                   <p className="text-sm text-gray-600">Busy Hours</p>
                   <p className="text-2xl font-bold">
-                    {isLoading ? '—' : `${data?.busyHours || 0}h`}
+                    {isLoading ? '—' : `${(data?.busyHours || 0).toFixed(1)}h`}
                   </p>
                 </div>
               </div>
@@ -76,7 +76,7 @@ const Dashboard = () => {
                 <div>
                   <p className="text-sm text-gray-600">Free Hours</p>
                   <p className="text-2xl font-bold">
-                    {isLoading ? '—' : `${data?.freeHours || 0}h`}
+                    {isLoading ? '—' : `${(data?.freeHours || 0).toFixed(1)}h`}
                   </p>
                 </div>
               </div>
