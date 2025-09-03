@@ -430,7 +430,7 @@ const Profile = () => {
               Calendar Integrations
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button size="sm">
+                  <Button size="sm" disabled={calendars.length > 0}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Calendar
                   </Button>
