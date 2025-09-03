@@ -479,7 +479,7 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
                     Back
                   </Button>
                   <Button type="submit" className="flex-1 wellness-button" disabled={isLoading}>
-                    {isLoading ? 'Saving...' : 'Complete Setup'}
+                    {isLoading ? 'Saving...' : 'Create Account'}
                   </Button>
                 </div>
               </form>
