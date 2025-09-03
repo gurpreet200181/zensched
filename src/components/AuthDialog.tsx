@@ -469,19 +469,9 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
                   </div>
                 </div>
 
-                <div className="flex gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setMode('signup')}
-                    className="flex-1"
-                  >
-                    Back
-                  </Button>
-                  <Button type="submit" className="flex-1 wellness-button" disabled={isLoading}>
-                    {isLoading ? 'Saving...' : 'Create Account'}
-                  </Button>
-                </div>
+                <Button type="submit" className="w-full wellness-button" disabled={isLoading}>
+                  {isLoading ? 'Saving...' : 'Create Account'}
+                </Button>
               </form>
             </Form>
           </>
