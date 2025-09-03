@@ -35,6 +35,9 @@ serve(async (req) => {
     );
   }
 
+  console.log('ELEVENLABS_API_KEY exists:', !!ELEVENLABS_API_KEY);
+  console.log('API key starts with:', ELEVENLABS_API_KEY?.substring(0, 8) + '...');
+
   try {
     const { text, voice = 'Sarah' } = await req.json();
 
