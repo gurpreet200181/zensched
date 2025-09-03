@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { TrendingUp, TrendingDown, Users, Clock, AlertTriangle } from 'lucide-react';
+import { Users, Clock, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -14,7 +14,6 @@ interface TeamMember {
   user_id: string;
   display_name: string;
   avg7_score: number;
-  trend_delta: number;
   avg_meetings: number;
   avg_after_hours_min: number;
 }
@@ -34,7 +33,6 @@ const HRDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUserDrawerOpen, setIsUserDrawerOpen] = useState(false);
   const [bandFilter, setBandFilter] = useState<string>('all');
-  const [trendFilter, setTrendFilter] = useState<string>('all');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -90,12 +88,6 @@ const HRDashboard = () => {
     return { label: 'Overwhelming', color: 'bg-red-100 text-red-800 border-red-200' };
   };
 
-  const getTrendIcon = (delta: number) => {
-    if (delta > 5) return <TrendingUp className="h-4 w-4 text-red-600" />;
-    if (delta < -5) return <TrendingDown className="h-4 w-4 text-green-600" />;
-    return <div className="h-4 w-4" />; // Stable
-  };
-
   const handleRowClick = (member: TeamMember) => {
     setSelectedUser(member);
     loadUserHealth(member.user_id);
@@ -104,14 +96,7 @@ const HRDashboard = () => {
 
   const filteredTeamData = teamData.filter((member) => {
     const band = getBusynessBand(member.avg7_score);
-    const bandMatch = bandFilter === 'all' || band.label.toLowerCase() === bandFilter;
-    
-    const trendMatch = trendFilter === 'all' || 
-      (trendFilter === 'improving' && member.trend_delta < -5) ||
-      (trendFilter === 'worsening' && member.trend_delta > 5) ||
-      (trendFilter === 'stable' && Math.abs(member.trend_delta) <= 5);
-    
-    return bandMatch && trendMatch;
+    return bandFilter === 'all' || band.label.toLowerCase() === bandFilter;
   });
 
   const avgBusyness = teamData.length > 0 
@@ -204,18 +189,6 @@ const HRDashboard = () => {
             <SelectItem value="overwhelming">Overwhelming (80+)</SelectItem>
           </SelectContent>
         </Select>
-
-        <Select value={trendFilter} onValueChange={setTrendFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by trend" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All trends</SelectItem>
-            <SelectItem value="improving">Improving</SelectItem>
-            <SelectItem value="stable">Stable</SelectItem>
-            <SelectItem value="worsening">Worsening</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Team Table */}
@@ -230,7 +203,6 @@ const HRDashboard = () => {
                 <TableHead>Employee</TableHead>
                 <TableHead>Past 7 day Avg</TableHead>
                 <TableHead>Band</TableHead>
-                <TableHead>Trend</TableHead>
                 <TableHead>Avg Meetings/Day</TableHead>
                 <TableHead>After Hours (min/day)</TableHead>
               </TableRow>
@@ -250,17 +222,6 @@ const HRDashboard = () => {
                       <Badge variant="outline" className={band.color}>
                         {band.label}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getTrendIcon(member.trend_delta)}
-                        <span className={
-                          member.trend_delta > 5 ? "text-red-600" :
-                          member.trend_delta < -5 ? "text-green-600" : "text-gray-600"
-                        }>
-                          {member.trend_delta > 0 ? '+' : ''}{member.trend_delta}
-                        </span>
-                      </div>
                     </TableCell>
                     <TableCell>{member.avg_meetings}</TableCell>
                     <TableCell>{member.avg_after_hours_min}</TableCell>
