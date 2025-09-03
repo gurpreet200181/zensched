@@ -16,7 +16,7 @@ interface AuthDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type AuthMode = 'signin' | 'signup' | 'calendar-setup';
+type AuthMode = 'signin' | 'signup' | 'confirm-signup' | 'calendar-setup';
 
 interface AuthFormData {
   email: string;
@@ -63,43 +63,11 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
     setIsLoading(true);
     try {
       if (mode === 'signup') {
-        const { data: authData, error } = await supabase.auth.signUp({
-          email: data.email,
-          password: data.password,
-            options: {
-              emailRedirectTo: `${window.location.origin}/dashboard`,
-              data: {
-                display_name: data.displayName,
-                role: data.role,
-                timezone: data.timezone
-              }
-            }
-        });
-
-        if (error) {
-          if (error.message.includes('User already registered')) {
-            toast({
-              title: "Account exists",
-              description: "This email is already registered. Please sign in instead.",
-              variant: "destructive"
-            });
-            setMode('signin');
-          } else {
-            toast({
-              title: "Sign up failed",
-              description: error.message,
-              variant: "destructive"
-            });
-          }
-        } else {
-          setPendingUser(authData.user);
-          toast({
-            title: "Check your email",
-            description: "We've sent you a confirmation link. Please complete the calendar setup below.",
-          });
-          setMode('calendar-setup');
-        }
-      } else {
+        // Just move to confirmation step, don't create account yet
+        setMode('confirm-signup');
+        setIsLoading(false);
+        return;
+      } else if (mode === 'signin') {
         const { error } = await supabase.auth.signInWithPassword({
           email: data.email,
           password: data.password,
@@ -118,6 +86,57 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
           });
           onOpenChange(false);
         }
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onCreateAccount = async () => {
+    const formData = authForm.getValues();
+    setIsLoading(true);
+    try {
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+          data: {
+            display_name: formData.displayName,
+            role: formData.role,
+            timezone: formData.timezone
+          }
+        }
+      });
+
+      if (error) {
+        if (error.message.includes('User already registered')) {
+          toast({
+            title: "Account exists",
+            description: "This email is already registered. Please sign in instead.",
+            variant: "destructive"
+          });
+          setMode('signin');
+        } else {
+          toast({
+            title: "Sign up failed",
+            description: error.message,
+            variant: "destructive"
+          });
+        }
+      } else {
+        setPendingUser(authData.user);
+        toast({
+          title: "Check your email",
+          description: "We've sent you a confirmation link. Please complete the calendar setup below.",
+        });
+        setMode('calendar-setup');
       }
     } catch (error) {
       toast({
@@ -348,6 +367,58 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
                 </div>
               </form>
             </Form>
+          </>
+        ) : mode === 'confirm-signup' ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                Confirm Account Details
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="wellness-card p-4 space-y-3">
+                <h4 className="font-medium text-sm">Account Information</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Name:</span>
+                    <span>{authForm.getValues('displayName') || 'Not provided'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Email:</span>
+                    <span>{authForm.getValues('email')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Role:</span>
+                    <span className="capitalize">{authForm.getValues('role') === 'hr' ? 'HR Manager' : 'Employee'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-sm text-muted-foreground text-center">
+                Please review your account details. Once you create your account, a confirmation email will be sent to verify your email address.
+              </p>
+
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setMode('signup')}
+                  className="flex-1"
+                >
+                  Back
+                </Button>
+                <Button
+                  type="button"
+                  onClick={onCreateAccount}
+                  className="flex-1 wellness-button"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Creating Account...' : 'Create Account'}
+                </Button>
+              </div>
+            </div>
           </>
         ) : (
           <>
