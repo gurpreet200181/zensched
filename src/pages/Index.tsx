@@ -28,17 +28,6 @@ const Index = () => {
 
       <WellnessHero />
       
-      {/* Demo trigger */}
-      <div className="fixed bottom-8 right-8 z-50">
-        <Button 
-          onClick={() => setShowDemo(true)}
-          className="wellness-button shadow-2xl"
-          size="lg"
-        >
-          View Dashboard Demo
-        </Button>
-      </div>
-      
       {/* Features Preview Section */}
       <section className="py-20 bg-gradient-to-b from-sage-50 to-white">
         <div className="container mx-auto px-6">
