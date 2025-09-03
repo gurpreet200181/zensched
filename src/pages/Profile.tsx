@@ -73,10 +73,39 @@ const Profile = () => {
     if (error) {
       console.error('Error loading profile:', error);
     } else {
-      setProfile(data as Profile);
-      setDisplayName(data.display_name || '');
-      setSelectedOrgId(data.org_id || 'none');
-      setShareWithOrg(data.share_aggregate_with_org || false);
+      const profileData = data as Profile;
+      setProfile(profileData);
+      setDisplayName(profileData.display_name || '');
+      setSelectedOrgId(profileData.org_id || 'none');
+      setShareWithOrg(profileData.share_aggregate_with_org || false);
+
+      // Ensure membership exists if profile has an org_id but no membership row
+      try {
+        if (profileData.org_id) {
+          const { data: { user: currentUser } } = await supabase.auth.getUser();
+          if (currentUser) {
+            const { data: existingMember } = await supabase
+              .from('org_members')
+              .select('user_id')
+              .eq('org_id', profileData.org_id)
+              .eq('user_id', currentUser.id)
+              .maybeSingle();
+
+            if (!existingMember) {
+              await supabase.from('org_members').insert({
+                org_id: profileData.org_id,
+                user_id: currentUser.id,
+                role: (profileData.role || 'user') as 'user' | 'hr',
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error ensuring org membership:', e);
+      }
+
+      // Refresh organizations after ensuring membership
+      loadOrganizations();
     }
   };
 
