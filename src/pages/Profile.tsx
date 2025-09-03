@@ -43,7 +43,7 @@ const Profile = () => {
   const [calendars, setCalendars] = useState<CalendarIntegration[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [displayName, setDisplayName] = useState('');
-  const [selectedOrgId, setSelectedOrgId] = useState<string>('');
+  const [selectedOrgId, setSelectedOrgId] = useState<string>('none');
   const [newOrgName, setNewOrgName] = useState('');
   const [shareWithOrg, setShareWithOrg] = useState(false);
   const [newCalendarUrl, setNewCalendarUrl] = useState('');
@@ -73,7 +73,7 @@ const Profile = () => {
     } else {
       setProfile(data as Profile);
       setDisplayName(data.display_name || '');
-      setSelectedOrgId(data.org_id || '');
+      setSelectedOrgId(data.org_id || 'none');
       setShareWithOrg(data.share_aggregate_with_org || false);
     }
   };
@@ -187,7 +187,7 @@ const Profile = () => {
         .from('profiles')
         .update({ 
           display_name: displayName,
-          org_id: selectedOrgId || null,
+          org_id: selectedOrgId === 'none' ? null : selectedOrgId,
           share_aggregate_with_org: shareWithOrg
         })
         .eq('user_id', user.id);
@@ -195,7 +195,7 @@ const Profile = () => {
       if (profileError) throw profileError;
 
       // Update or create organization membership if org selected
-      if (selectedOrgId) {
+      if (selectedOrgId && selectedOrgId !== 'none') {
         const { data: existing } = await supabase
           .from('org_members')
           .select('*')
@@ -224,7 +224,7 @@ const Profile = () => {
       setProfile({
         ...profile,
         display_name: displayName,
-        org_id: selectedOrgId || null,
+        org_id: selectedOrgId === 'none' ? null : selectedOrgId,
         share_aggregate_with_org: shareWithOrg
       });
     } catch (error: any) {
@@ -380,7 +380,7 @@ const Profile = () => {
                     <SelectValue placeholder="Select organization" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No organization</SelectItem>
+                    <SelectItem value="none">No organization</SelectItem>
                     {organizations.map((org) => (
                       <SelectItem key={org.id} value={org.id}>
                         {org.name}
@@ -431,10 +431,10 @@ const Profile = () => {
                 id="shareConsent"
                 checked={shareWithOrg}
                 onCheckedChange={setShareWithOrg}
-                disabled={!selectedOrgId}
+                disabled={!selectedOrgId || selectedOrgId === 'none'}
               />
             </div>
-            {!selectedOrgId && (
+            {(!selectedOrgId || selectedOrgId === 'none') && (
               <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded">
                 Select an organization to enable data sharing options
               </p>
