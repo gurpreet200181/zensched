@@ -19,6 +19,7 @@ const VOICE_MAP: { [key: string]: string } = {
 };
 
 serve(async (req) => {
+  console.log('ElevenLabs TTS function invoked'); // Force redeployment
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
