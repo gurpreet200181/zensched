@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 interface AuthDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialMode?: AuthMode;
 }
 
 type AuthMode = 'signin' | 'signup';
@@ -24,11 +25,11 @@ interface AuthFormData {
   timezone?: string;
 }
 
-const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
-  const [mode, setMode] = useState<AuthMode>('signup');
+const AuthDialog = ({ open, onOpenChange, initialMode = 'signup' }: AuthDialogProps) => {
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-
+  
   const authForm = useForm<AuthFormData>({
     defaultValues: {
       email: '',
@@ -38,6 +39,14 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     },
   });
+  
+  // Reset to initial mode when dialog opens
+  useEffect(() => {
+    if (open) {
+      setMode(initialMode);
+      authForm.reset();
+    }
+  }, [open, initialMode, authForm]);
 
   const onAuthSubmit = async (data: AuthFormData) => {
     setIsLoading(true);

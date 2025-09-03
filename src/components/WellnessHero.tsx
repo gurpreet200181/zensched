@@ -78,7 +78,7 @@ const WellnessHero = () => {
         </div>
       </div>
 
-      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} initialMode="signup" />
     </div>
   );
 };

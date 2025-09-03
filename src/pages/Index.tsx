@@ -68,7 +68,7 @@ const Index = () => {
         </div>
       </section>
 
-      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} initialMode="signin" />
     </div>
   );
 };
