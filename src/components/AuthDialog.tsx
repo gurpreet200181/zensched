@@ -154,10 +154,21 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
       // Save ICS calendar integrations
       const validIcsUrls = data.icsUrls.filter(url => url.trim() !== '');
       if (validIcsUrls.length > 0) {
-        const calendarIntegrations = validIcsUrls.map(url => ({
+        // Encrypt URLs before storing
+        const encryptedUrls = await Promise.all(
+          validIcsUrls.map(async (url) => {
+            const { data: encrypted, error } = await supabase.functions.invoke('calendar-crypto', {
+              body: { action: 'encrypt', data: { url } }
+            });
+            if (error) throw error;
+            return encrypted.encrypted;
+          })
+        );
+
+        const calendarIntegrations = encryptedUrls.map((encryptedUrl, index) => ({
           user_id: pendingUser.id,
           provider: 'ics',
-          calendar_url: url,
+          calendar_url: encryptedUrl,
           is_active: true
         }));
 

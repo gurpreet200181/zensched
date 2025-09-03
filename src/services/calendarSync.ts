@@ -50,11 +50,22 @@ export class CalendarSyncService {
 
   static async syncICSCalendar(integration: any): Promise<void> {
     try {
-      console.log(`Syncing ICS calendar: ${integration.calendar_url}`);
+      // Decrypt the calendar URL first
+      const { data: decrypted, error: decryptError } = await supabase.functions.invoke('calendar-crypto', {
+        body: { action: 'decrypt', data: { encrypted: integration.calendar_url } }
+      });
+      
+      if (decryptError) {
+        console.error('Failed to decrypt calendar URL:', decryptError);
+        throw new Error('Failed to decrypt calendar URL');
+      }
+
+      const decryptedUrl = decrypted.decrypted;
+      console.log(`Syncing ICS calendar: ${decryptedUrl.substring(0, 50)}...`);
       const startTime = Date.now();
       
       // Fetch and parse ICS events
-      const icsEvents = await ICSParser.fetchAndParseICS(integration.calendar_url);
+      const icsEvents = await ICSParser.fetchAndParseICS(decryptedUrl);
       
       console.log(`Fetched ${icsEvents.length} events in ${Date.now() - startTime}ms`);
       

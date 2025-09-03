@@ -72,7 +72,22 @@ const Profile = () => {
     if (error) {
       console.error('Error loading calendars:', error);
     } else {
-      setCalendars(data || []);
+      // Decrypt URLs for display
+      const calendarsWithDecryptedUrls = await Promise.all(
+        (data || []).map(async (calendar) => {
+          try {
+            const { data: decrypted, error: decryptError } = await supabase.functions.invoke('calendar-crypto', {
+              body: { action: 'decrypt', data: { encrypted: calendar.calendar_url } }
+            });
+            if (decryptError) throw decryptError;
+            return { ...calendar, calendar_url: decrypted.decrypted };
+          } catch (error) {
+            console.error('Error decrypting calendar URL:', error);
+            return { ...calendar, calendar_url: '[Encrypted URL]' };
+          }
+        })
+      );
+      setCalendars(calendarsWithDecryptedUrls);
     }
   };
 
@@ -108,28 +123,44 @@ const Profile = () => {
     if (!user) return;
 
     setIsAddingCalendar(true);
-    const { error } = await supabase
-      .from('calendar_integrations')
-      .insert({
-        user_id: user.id,
-        provider: 'ics',
-        calendar_url: newCalendarUrl,
-        is_active: true
+    
+    try {
+      // Encrypt URL before storing
+      const { data: encrypted, error: encryptError } = await supabase.functions.invoke('calendar-crypto', {
+        body: { action: 'encrypt', data: { url: newCalendarUrl } }
       });
+      
+      if (encryptError) throw encryptError;
 
-    if (error) {
+      const { error } = await supabase
+        .from('calendar_integrations')
+        .insert({
+          user_id: user.id,
+          provider: 'ics',
+          calendar_url: encrypted.encrypted,
+          is_active: true
+        });
+
+      if (error) {
+        toast({
+          title: "Error adding calendar",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Calendar added",
+          description: "Your calendar has been successfully added.",
+        });
+        setNewCalendarUrl('');
+        loadCalendars();
+      }
+    } catch (error: any) {
       toast({
         title: "Error adding calendar",
-        description: error.message,
+        description: error.message || "Failed to encrypt calendar URL",
         variant: "destructive"
       });
-    } else {
-      toast({
-        title: "Calendar added",
-        description: "Your calendar has been successfully added.",
-      });
-      setNewCalendarUrl('');
-      loadCalendars();
     }
     setIsAddingCalendar(false);
   };
