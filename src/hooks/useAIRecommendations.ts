@@ -17,9 +17,9 @@ export interface AIAnalysisResult {
   summary: string;
 }
 
-export function useAIRecommendations(events: CalendarEvent[], enabled: boolean = true) {
+export function useAIRecommendations(events: CalendarEvent[], enabled: boolean = true, selectedDate?: Date) {
   return useQuery({
-    queryKey: ['ai-recommendations', events],
+    queryKey: ['ai-recommendations', events.length, selectedDate?.toDateString(), events.map(e => e.id).join(',')],
     queryFn: async (): Promise<AIAnalysisResult> => {
       console.log('Requesting AI analysis for', events.length, 'events');
       

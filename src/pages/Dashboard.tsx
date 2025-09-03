@@ -123,7 +123,7 @@ const Dashboard = () => {
             {!isLoading && !error && (
               <WellnessRecommendations 
                 recommendations={data?.recommendations || []}
-                summary={data?.aiSummary || (data?.busynessScore ? `Based on your ${data.busynessScore}% busyness score, here are personalized suggestions to optimize your schedule and reduce stress.` : undefined)}
+                summary={data?.aiSummary}
                 aiEnabled={true}
                 aiLoading={aiLoading}
               />

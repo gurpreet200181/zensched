@@ -1,5 +1,4 @@
 
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAIRecommendations } from './useAIRecommendations';
@@ -33,15 +32,13 @@ function minutesBetween(a: Date, b: Date) {
 }
 
 export function useCalendarData(selectedDate: Date = new Date()) {
-  const [date] = useState(selectedDate);
-
   // First, get the calendar events
   const calendarQuery = useQuery({
-    queryKey: ['calendar-events', date.toISOString().split('T')[0]],
+    queryKey: ['calendar-events', selectedDate.toISOString().split('T')[0]],
     queryFn: async () => {
-      console.log('Loading calendar data for date:', date.toISOString().split('T')[0]);
+      console.log('Loading calendar data for date:', selectedDate.toISOString().split('T')[0]);
       
-      const { start, end } = startEndOfDay(date);
+      const { start, end } = startEndOfDay(selectedDate);
 
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
@@ -132,7 +129,8 @@ export function useCalendarData(selectedDate: Date = new Date()) {
   // Then get AI recommendations based on the events
   const aiRecommendations = useAIRecommendations(
     calendarQuery.data?.events || [],
-    !calendarQuery.isLoading && !!calendarQuery.data?.events
+    !calendarQuery.isLoading && !!calendarQuery.data?.events,
+    selectedDate
   );
 
   return {
