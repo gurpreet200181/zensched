@@ -420,25 +420,6 @@ const Profile = () => {
                 </Dialog>
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="shareConsent">Share Wellness Data</Label>
-                <p className="text-sm text-gray-500">
-                  Allow HR/managers to view your aggregate wellness metrics (no event details)
-                </p>
-              </div>
-              <Switch
-                id="shareConsent"
-                checked={shareWithOrg}
-                onCheckedChange={setShareWithOrg}
-                disabled={!selectedOrgId || selectedOrgId === 'none'}
-              />
-            </div>
-            {(!selectedOrgId || selectedOrgId === 'none') && (
-              <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded">
-                Select an organization to enable data sharing options
-              </p>
-            )}
           </CardContent>
         </Card>
 
