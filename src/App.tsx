@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
 import Profile from "./pages/Profile";
+import HRDashboard from "./pages/HRDashboard";
 import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
@@ -90,6 +91,14 @@ const App = () => (
             element={
               <AppLayout>
                 <Profile />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/hr"
+            element={
+              <AppLayout>
+                <HRDashboard />
               </AppLayout>
             }
           />

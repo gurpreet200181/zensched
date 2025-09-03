@@ -4,18 +4,29 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, Plus, Calendar, ExternalLink } from 'lucide-react';
+import { Trash2, Plus, Calendar, ExternalLink, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 
 interface Profile {
   id: string;
+  user_id: string;
   display_name: string;
   email: string;
   work_start_time: string;
   work_end_time: string;
   timezone: string;
+  role: 'user' | 'hr' | 'admin';
+  org_id: string | null;
+  share_aggregate_with_org: boolean;
+}
+
+interface Organization {
+  id: string;
+  name: string;
 }
 
 interface CalendarIntegration {
@@ -30,15 +41,21 @@ interface CalendarIntegration {
 const Profile = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [calendars, setCalendars] = useState<CalendarIntegration[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [displayName, setDisplayName] = useState('');
+  const [selectedOrgId, setSelectedOrgId] = useState<string>('');
+  const [newOrgName, setNewOrgName] = useState('');
+  const [shareWithOrg, setShareWithOrg] = useState(false);
   const [newCalendarUrl, setNewCalendarUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isAddingCalendar, setIsAddingCalendar] = useState(false);
+  const [isCreatingOrg, setIsCreatingOrg] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     loadProfile();
     loadCalendars();
+    loadOrganizations();
   }, []);
 
   const loadProfile = async () => {
@@ -54,8 +71,10 @@ const Profile = () => {
     if (error) {
       console.error('Error loading profile:', error);
     } else {
-      setProfile(data);
+      setProfile(data as Profile);
       setDisplayName(data.display_name || '');
+      setSelectedOrgId(data.org_id || '');
+      setShareWithOrg(data.share_aggregate_with_org || false);
     }
   };
 
@@ -91,27 +110,129 @@ const Profile = () => {
     }
   };
 
+  const loadOrganizations = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('orgs')
+      .select('*')
+      .order('name');
+
+    if (error) {
+      console.error('Error loading organizations:', error);
+    } else {
+      setOrganizations(data || []);
+    }
+  };
+
+  const createOrganization = async () => {
+    if (!newOrgName.trim()) return;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    setIsCreatingOrg(true);
+    
+    try {
+      // Create organization
+      const { data: org, error: orgError } = await supabase
+        .from('orgs')
+        .insert({ name: newOrgName })
+        .select()
+        .single();
+
+      if (orgError) throw orgError;
+
+      // Join as admin
+      const { error: memberError } = await supabase
+        .from('org_members')
+        .insert({
+          org_id: org.id,
+          user_id: user.id,
+          role: 'admin'
+        });
+
+      if (memberError) throw memberError;
+
+      toast({
+        title: "Organization created",
+        description: "You've been added as an admin.",
+      });
+      
+      setNewOrgName('');
+      setSelectedOrgId(org.id);
+      loadOrganizations();
+    } catch (error: any) {
+      toast({
+        title: "Error creating organization",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+    setIsCreatingOrg(false);
+  };
+
   const updateProfile = async () => {
     if (!profile) return;
     
     setIsLoading(true);
-    const { error } = await supabase
-      .from('profiles')
-      .update({ display_name: displayName })
-      .eq('id', profile.id);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
 
-    if (error) {
+      // Update profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ 
+          display_name: displayName,
+          org_id: selectedOrgId || null,
+          share_aggregate_with_org: shareWithOrg
+        })
+        .eq('user_id', user.id);
+
+      if (profileError) throw profileError;
+
+      // Update or create organization membership if org selected
+      if (selectedOrgId) {
+        const { data: existing } = await supabase
+          .from('org_members')
+          .select('*')
+          .eq('org_id', selectedOrgId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (!existing) {
+          const { error: memberError } = await supabase
+            .from('org_members')
+            .insert({
+              org_id: selectedOrgId,
+              user_id: user.id,
+              role: 'user'
+            });
+
+          if (memberError) throw memberError;
+        }
+      }
+
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been successfully updated.",
+      });
+      
+      setProfile({
+        ...profile,
+        display_name: displayName,
+        org_id: selectedOrgId || null,
+        share_aggregate_with_org: shareWithOrg
+      });
+    } catch (error: any) {
       toast({
         title: "Error updating profile",
         description: error.message,
         variant: "destructive"
       });
-    } else {
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been successfully updated.",
-      });
-      setProfile({ ...profile, display_name: displayName });
     }
     setIsLoading(false);
   };
@@ -224,9 +345,100 @@ const Profile = () => {
                 className="bg-gray-50"
               />
             </div>
+            <div>
+              <Label htmlFor="role">Role</Label>
+              <Input
+                id="role"
+                value={profile?.role || 'user'}
+                disabled
+                className="bg-gray-50 capitalize"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Contact your admin to change your role
+              </p>
+            </div>
             <Button onClick={updateProfile} disabled={isLoading}>
               {isLoading ? 'Saving...' : 'Save Changes'}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Organization Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Organization & Privacy
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="organization">Organization</Label>
+              <div className="flex gap-2">
+                <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select organization" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No organization</SelectItem>
+                    {organizations.map((org) => (
+                      <SelectItem key={org.id} value={org.id}>
+                        {org.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create Organization</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <div>
+                        <Label htmlFor="orgName">Organization Name</Label>
+                        <Input
+                          id="orgName"
+                          value={newOrgName}
+                          onChange={(e) => setNewOrgName(e.target.value)}
+                          placeholder="Enter organization name"
+                        />
+                      </div>
+                      <Button 
+                        onClick={createOrganization} 
+                        disabled={isCreatingOrg || !newOrgName.trim()}
+                        className="w-full"
+                      >
+                        {isCreatingOrg ? 'Creating...' : 'Create Organization'}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="shareConsent">Share Wellness Data</Label>
+                <p className="text-sm text-gray-500">
+                  Allow HR/managers to view your aggregate wellness metrics (no event details)
+                </p>
+              </div>
+              <Switch
+                id="shareConsent"
+                checked={shareWithOrg}
+                onCheckedChange={setShareWithOrg}
+                disabled={!selectedOrgId}
+              />
+            </div>
+            {!selectedOrgId && (
+              <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded">
+                Select an organization to enable data sharing options
+              </p>
+            )}
           </CardContent>
         </Card>
 

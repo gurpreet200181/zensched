@@ -1,5 +1,5 @@
 
-import { Calendar, BarChart3, User, LogOut, Home } from 'lucide-react';
+import { Calendar, BarChart3, User, LogOut, Home, Users } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Sidebar,
@@ -16,16 +16,19 @@ import {
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
-const menuItems = [
-  { title: 'Dashboard', url: '/dashboard', icon: Home },
-  { title: 'Analytics', url: '/analytics', icon: BarChart3 },
-  { title: 'Profile', url: '/profile', icon: User },
-];
+import { useUserRole } from '@/hooks/useUserRole';
 
 export function AppSidebar() {
   const { toast } = useToast();
   const location = useLocation();
+  const { isHROrAdmin } = useUserRole();
+
+  const menuItems = [
+    { title: 'Dashboard', url: '/dashboard', icon: Home },
+    { title: 'Analytics', url: '/analytics', icon: BarChart3 },
+    { title: 'Profile', url: '/profile', icon: User },
+    ...(isHROrAdmin ? [{ title: 'Team Wellness', url: '/hr', icon: Users }] : []),
+  ];
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
