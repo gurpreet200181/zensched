@@ -8,6 +8,11 @@ const corsHeaders = {
 
 const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
 
+// Debug: Check all environment variables
+console.log('All env vars:', Object.keys(Deno.env.toObject()));
+console.log('ELEVENLABS_API_KEY value:', ELEVENLABS_API_KEY);
+console.log('GROQ_API_KEY exists:', !!Deno.env.get('GROQ_API_KEY'));
+
 // Voice ID mapping
 const VOICE_MAP: { [key: string]: string } = {
   'Aria': '9BWtsMINqrJLrRacOk9x',
