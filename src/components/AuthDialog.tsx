@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
-import { Calendar, Link, Mail, Lock, User, ExternalLink } from 'lucide-react';
+import { Calendar, Link, Mail, Lock, User, ExternalLink, Users } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -21,6 +22,7 @@ interface AuthFormData {
   email: string;
   password: string;
   displayName?: string;
+  role?: 'user' | 'hr' | 'admin';
   timezone?: string;
 }
 
@@ -43,6 +45,7 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
       email: '',
       password: '',
       displayName: '',
+      role: 'user',
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     },
   });
@@ -63,13 +66,14 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
         const { data: authData, error } = await supabase.auth.signUp({
           email: data.email,
           password: data.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
-            data: {
-              display_name: data.displayName,
-              timezone: data.timezone
+            options: {
+              emailRedirectTo: `${window.location.origin}/dashboard`,
+              data: {
+                display_name: data.displayName,
+                role: data.role,
+                timezone: data.timezone
+              }
             }
-          }
         });
 
         if (error) {
@@ -234,19 +238,50 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
             <Form {...authForm}>
               <form onSubmit={authForm.handleSubmit(onAuthSubmit)} className="space-y-4">
                 {mode === 'signup' && (
-                  <FormField
-                    control={authForm.control}
-                    name="displayName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Display Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Your name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <>
+                    <FormField
+                      control={authForm.control}
+                      name="displayName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Display Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Your name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={authForm.control}
+                      name="role"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            Your Role
+                          </FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select your role" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="user">Employee</SelectItem>
+                              <SelectItem value="hr">HR Manager</SelectItem>
+                              <SelectItem value="admin">Administrator</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            This determines your access level in the application
+                          </p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
                 )}
 
                 <FormField
