@@ -22,21 +22,45 @@ function AuthRouteEffects() {
   const location = useLocation();
 
   useEffect(() => {
-    // Redirect to dashboard on successful sign-in
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      console.log("[auth] state change:", event);
-      if (event === "SIGNED_IN") {
-        navigate("/dashboard", { replace: true });
+    // Handle authentication state changes
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("[auth] state change:", event, session?.user?.id);
+      
+      if (event === "SIGNED_IN" && session?.user) {
+        // Check if user has completed profile setup
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name, work_start_time, work_end_time')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+
+        // If no profile or incomplete setup, redirect to profile
+        if (!profile || !profile.display_name) {
+          navigate("/profile", { replace: true });
+        } else {
+          navigate("/dashboard", { replace: true });
+        }
       }
+      
       if (event === "SIGNED_OUT") {
         navigate("/", { replace: true });
       }
     });
 
     // Also check current session on mount
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       if (data.session && location.pathname === "/") {
-        navigate("/dashboard", { replace: true });
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name, work_start_time, work_end_time')
+          .eq('user_id', data.session.user.id)
+          .maybeSingle();
+
+        if (!profile || !profile.display_name) {
+          navigate("/profile", { replace: true });
+        } else {
+          navigate("/dashboard", { replace: true });
+        }
       }
     });
 
