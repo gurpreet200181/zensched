@@ -67,14 +67,6 @@ const WellnessHero = () => {
             >
               Get Started Free
             </Button>
-            
-            <Button 
-              variant="outline"
-              size="lg"
-              className="bg-transparent border-2 border-white/50 hover:bg-white/10 text-white hover:text-white rounded-xl px-8 py-4 text-lg font-medium transition-all duration-300"
-            >
-              View Demo
-            </Button>
           </div>
 
           {/* Status indicator */}
