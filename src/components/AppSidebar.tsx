@@ -2,6 +2,7 @@
 import { Calendar, BarChart3, User, LogOut, Home, Users } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import {
   Sidebar,
   SidebarContent,
@@ -24,33 +25,52 @@ export function AppSidebar() {
   const { toast } = useToast();
   const location = useLocation();
   const { isHROrAdmin } = useUserRole();
+  const queryClient = useQueryClient();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // Get current user ID first
-  const { data: currentUser } = useQuery({
-    queryKey: ['current-user'],
+  // Initialize current user ID on mount
+  useEffect(() => {
+    const initializeUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+    };
+    
+    initializeUser();
+  }, []);
+
+  // Listen for auth state changes and clear cache when user changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const newUserId = session?.user?.id || null;
+      
+      if (currentUserId !== newUserId) {
+        // Clear all caches when user changes
+        queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+        queryClient.invalidateQueries({ queryKey: ['current-user'] });
+        setCurrentUserId(newUserId);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [currentUserId, queryClient]);
+
+  // Use React Query to fetch user profile data directly with auth user
+  const { data: userProfile } = useQuery({
+    queryKey: ['user-profile', currentUserId],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      return user;
-    },
-    staleTime: 1000 * 60 * 5,
-  });
-
-  // Use React Query to fetch user profile data with user-specific cache key
-  const { data: userProfile } = useQuery({
-    queryKey: ['user-profile', currentUser?.id],
-    queryFn: async () => {
-      if (!currentUser?.id) return null;
+      if (!user) return null;
 
       const { data: profile } = await supabase
         .from('profiles')
         .select('display_name, avatar_url')
-        .eq('user_id', currentUser.id)
+        .eq('user_id', user.id)
         .single();
 
       return profile;
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: !!currentUser?.id,
+    staleTime: 1000 * 60 * 2, // Reduced to 2 minutes for better responsiveness
+    enabled: !!currentUserId,
   });
 
   const menuItems = [
