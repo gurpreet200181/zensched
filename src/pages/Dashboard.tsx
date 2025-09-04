@@ -109,7 +109,15 @@ const Dashboard = () => {
                       selected={selectedDate}
                       onSelect={handleDateSelect}
                       className="w-full"
-                      disabled={(date) => date > new Date()}
+                      disabled={(date) => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const oneWeekFromToday = new Date(today);
+                        oneWeekFromToday.setDate(today.getDate() + 7);
+                        
+                        // Disable past dates (before today) and dates more than one week from today
+                        return date < today || date > oneWeekFromToday;
+                      }}
                     />
                   </CardContent>
                 </Card>
