@@ -166,9 +166,6 @@ const DashboardSummary = () => {
                 "Ready to play your daily summary"
               )}
             </p>
-            {summary && (
-              <p className="mt-2 text-sm text-foreground/80">{summary}</p>
-            )}
           </div>
           
           <div className="flex items-center gap-2 ml-4">
