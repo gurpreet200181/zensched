@@ -45,10 +45,10 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Top Row - Dashboard Summary and Workload Index as squares */}
         {selectedDate.toDateString() === new Date().toDateString() && (
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-4">
             <div className="aspect-square">
               <DashboardSummary />
             </div>
@@ -64,7 +64,7 @@ const Dashboard = () => {
         )}
 
         {/* Controls Row - Smaller controls aligned horizontally */}
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-3 gap-3">
           {/* Busy Hours */}
           <Card className="h-24">
             <CardContent className="p-4 h-full">
