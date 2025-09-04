@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -15,11 +15,39 @@ export const useTTS = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentProvider, setCurrentProvider] = useState<string | null>(null);
+  const audioRef = useRef<{ element: HTMLAudioElement; url: string } | null>(null);
   const { toast } = useToast();
+
+  // Cleanup function
+  const cleanup = () => {
+    if (audioRef.current) {
+      audioRef.current.element.pause();
+      audioRef.current.element.currentTime = 0;
+      URL.revokeObjectURL(audioRef.current.url);
+      audioRef.current = null;
+    }
+    setIsPlaying(false);
+  };
+
+  // Cleanup on unmount and when user logs out
+  useEffect(() => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        cleanup();
+      }
+    });
+
+    return () => {
+      cleanup();
+      subscription.subscription.unsubscribe();
+    };
+  }, []);
 
   const speak = async (text: string) => {
     if (!text || isLoading) return;
 
+    // Stop any currently playing audio
+    cleanup();
     setIsLoading(true);
     
     try {
@@ -70,11 +98,17 @@ export const useTTS = () => {
       const audioUrl = URL.createObjectURL(audioBlob);
       const audioElement = new Audio(audioUrl);
 
+      // Store audio reference for cleanup
+      audioRef.current = { element: audioElement, url: audioUrl };
+
       audioElement.volume = 0.8;
 
       audioElement.onended = () => {
         setIsPlaying(false);
-        URL.revokeObjectURL(audioUrl);
+        if (audioRef.current) {
+          URL.revokeObjectURL(audioRef.current.url);
+          audioRef.current = null;
+        }
       };
 
       audioElement.onerror = () => {
@@ -86,7 +120,10 @@ export const useTTS = () => {
           description: "Could not play generated audio",
           variant: "destructive",
         });
-        URL.revokeObjectURL(audioUrl);
+        if (audioRef.current) {
+          URL.revokeObjectURL(audioRef.current.url);
+          audioRef.current = null;
+        }
       };
 
       try {
@@ -117,9 +154,7 @@ export const useTTS = () => {
   };
 
   const stop = () => {
-    setIsPlaying(false);
-    // Note: We can't easily stop the current audio without keeping a ref
-    // This would require a more complex implementation with useRef
+    cleanup();
   };
 
   return {
