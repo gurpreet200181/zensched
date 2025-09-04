@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -86,7 +87,7 @@ serve(async (req) => {
     }
 
     const audioBuffer = await response.arrayBuffer();
-    const audioBase64 = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
+    const audioBase64 = base64Encode(new Uint8Array(audioBuffer));
 
     return new Response(
       JSON.stringify({
