@@ -17,7 +17,7 @@ const AnalyticsChart = ({ data, type, className = "" }: AnalyticsChartProps) => 
   return (
     <div className={`wellness-card p-6 ${className}`}>
       <h3 className="text-lg font-medium text-gray-700 mb-4">
-        {type === 'bar' ? 'Meetings per Day' : 'Busyness Trend'}
+        {type === 'bar' ? 'Meetings per Day' : 'Workload Trend'}
       </h3>
       
       <div className="h-64">
