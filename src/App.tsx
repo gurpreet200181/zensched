@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { Calendar } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { UserProvider } from "@/contexts/UserContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
@@ -124,49 +125,51 @@ const queryClient = new QueryClient({
 const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthRouteEffects />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route
-              path="/dashboard"
-              element={
-                <AppLayout>
-                  <Dashboard />
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/analytics"
-              element={
-                <AppLayout>
-                  <Analytics />
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <AppLayout>
-                  <Profile />
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/hr"
-              element={
-                <AppLayout>
-                  <HRDashboard />
-                </AppLayout>
-              }
-            />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <UserProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthRouteEffects />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <AppLayout>
+                    <Dashboard />
+                  </AppLayout>
+                }
+              />
+              <Route
+                path="/analytics"
+                element={
+                  <AppLayout>
+                    <Analytics />
+                  </AppLayout>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <AppLayout>
+                    <Profile />
+                  </AppLayout>
+                }
+              />
+              <Route
+                path="/hr"
+                element={
+                  <AppLayout>
+                    <HRDashboard />
+                  </AppLayout>
+                }
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </UserProvider>
     </QueryClientProvider>
   );
 };
