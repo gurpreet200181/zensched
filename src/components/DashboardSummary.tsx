@@ -7,7 +7,10 @@ import { useTTS } from '@/hooks/useTTS';
 import VoiceStatusChip from '@/components/VoiceStatusChip';
 
 const DashboardSummary = () => {
-  const [hasPlayed, setHasPlayed] = useState(false);
+  // Check if summary has been played this session (prevents auto-play on every Dashboard visit)
+  const [hasPlayed, setHasPlayed] = useState(() => {
+    return sessionStorage.getItem('voiceSummaryPlayed') === 'true';
+  });
   const { data: todayData, isLoading: dataLoading } = useTodayData();
   const { speak, isLoading, isPlaying, currentProvider } = useTTS();
 
@@ -55,9 +58,11 @@ const DashboardSummary = () => {
     const summaryText = generateSummary(todayData);
     await speak(summaryText);
     setHasPlayed(true);
+    // Mark as played for this session so it doesn't auto-play again on Dashboard navigation
+    sessionStorage.setItem('voiceSummaryPlayed', 'true');
   };
 
-  // Auto-play when data is available
+  // Auto-play only on first Dashboard visit after login (not on subsequent navigation)
   useEffect(() => {
     if (todayData && !hasPlayed && !dataLoading && !isLoading) {
       playAudioSummary();
