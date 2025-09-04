@@ -2,17 +2,14 @@ import { useState, useEffect } from 'react';
 import { Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
 import { useTodayData } from '@/hooks/useTodayData';
+import { useTTS } from '@/hooks/useTTS';
+import VoiceStatusChip from '@/components/VoiceStatusChip';
 
 const DashboardSummary = () => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
-  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [summary, setSummary] = useState<string | null>(null);
   const { data: todayData, isLoading: dataLoading } = useTodayData();
+  const { speak, isLoading, isPlaying, currentProvider } = useTTS();
 
   const generateSummary = (data: any) => {
     if (!data) return "Welcome to your dashboard! Loading your schedule data...";
@@ -54,94 +51,18 @@ const DashboardSummary = () => {
 
   const playAudioSummary = async () => {
     if (!todayData || isLoading) return;
-
-    setIsLoading(true);
-    setError(null);
     
-    try {
-      const summaryText = generateSummary(todayData);
-      setSummary(summaryText);
-      
-      const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
-        body: {
-          text: summaryText,
-        }
-      });
-
-      if (error) {
-        console.error('TTS API Error:', error);
-        setError('Voice synthesis temporarily unavailable');
-        setIsLoading(false);
-        return;
-      }
-
-      if (data?.audioBase64) {
-        // Convert base64 back to audio blob
-        const byteChars = atob(data.audioBase64);
-        const byteNums = new Array(byteChars.length);
-        for (let i = 0; i < byteChars.length; i++) {
-          byteNums[i] = byteChars.charCodeAt(i);
-        }
-        const audioBlob = new Blob([new Uint8Array(byteNums)], { type: data.contentType || 'audio/mpeg' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audioElement = new Audio(audioUrl);
-
-        audioElement.volume = 0.8;
-
-        audioElement.onended = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(audioUrl);
-        };
-
-        audioElement.onerror = (e) => {
-          console.error('Audio playback error:', e);
-          setIsPlaying(false);
-          setIsLoading(false);
-          setError('Audio playback failed');
-          URL.revokeObjectURL(audioUrl);
-        };
-
-        audioElement.oncanplaythrough = async () => {
-          try {
-            await audioElement.play();
-            setIsPlaying(true);
-            setHasPlayed(true);
-            setIsLoading(false);
-          } catch (playError) {
-            console.error('Error playing audio:', playError);
-            setIsPlaying(false);
-            setIsLoading(false);
-            setError('Could not play audio - check browser permissions');
-          }
-        };
-
-        setAudio(audioElement);
-      } else {
-        console.error('TTS failed:', data?.detail || 'No audio content received');
-        setError('Voice synthesis failed');
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.error('Error playing summary:', error);
-      setError('Failed to generate voice summary');
-      setIsLoading(false);
-    }
-  };
-
-  const stopAudio = () => {
-    if (audio) {
-      audio.pause();
-      audio.currentTime = 0;
-      setIsPlaying(false);
-    }
+    const summaryText = generateSummary(todayData);
+    await speak(summaryText);
+    setHasPlayed(true);
   };
 
   // Auto-play when data is available
   useEffect(() => {
-    if (todayData && !hasPlayed && !dataLoading && !isLoading && !error) {
+    if (todayData && !hasPlayed && !dataLoading && !isLoading) {
       playAudioSummary();
     }
-  }, [todayData, hasPlayed, dataLoading, isLoading, error]);
+  }, [todayData, hasPlayed, dataLoading, isLoading]);
 
   if (dataLoading) {
     return null;
@@ -154,9 +75,7 @@ const DashboardSummary = () => {
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-foreground mb-1">Daily Summary</h3>
             <p className="text-sm text-muted-foreground">
-              {error ? (
-                <span className="text-destructive">{error}</span>
-              ) : isPlaying ? (
+              {isPlaying ? (
                 "Playing your daily summary..."
               ) : hasPlayed ? (
                 "Summary complete"
@@ -176,16 +95,16 @@ const DashboardSummary = () => {
               </div>
             ) : (
               <Button
-                onClick={isPlaying ? stopAudio : playAudioSummary}
+                onClick={playAudioSummary}
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-2"
-                disabled={!!error && !hasPlayed}
+                disabled={isLoading}
               >
                 {isPlaying ? (
                   <>
                     <VolumeX className="h-4 w-4" />
-                    Stop
+                    Playing...
                   </>
                 ) : (
                   <>
@@ -196,6 +115,11 @@ const DashboardSummary = () => {
               </Button>
             )}
           </div>
+        </div>
+        
+        {/* Voice Status Chip */}
+        <div className="mt-3 pt-2 border-t border-border/50 flex justify-end">
+          <VoiceStatusChip provider={currentProvider} />
         </div>
       </CardContent>
     </Card>
