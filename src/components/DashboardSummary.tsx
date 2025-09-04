@@ -78,18 +78,7 @@ const DashboardSummary = () => {
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-foreground mb-1">Daily Summary</h3>
-            <p className="text-sm text-muted-foreground">
-              {isPlaying ? (
-                "Playing your daily summary..."
-              ) : hasPlayed ? (
-                "Summary complete"
-              ) : isLoading ? (
-                "Preparing your daily summary..."
-              ) : (
-                "Ready to play your daily summary"
-              )}
-            </p>
+            {/* Content removed as requested */}
           </div>
           
           <div className="flex items-center gap-2 ml-4">
@@ -103,7 +92,7 @@ const DashboardSummary = () => {
                 onClick={playAudioSummary}
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white border-green-500 hover:border-green-600"
                 disabled={isLoading}
               >
                 {isPlaying ? (
@@ -114,7 +103,7 @@ const DashboardSummary = () => {
                 ) : (
                   <>
                     <Volume2 className="h-4 w-4" />
-                    {hasPlayed ? "Play Again" : "Play Summary"}
+                    Voice Summary: Powered by ElevenLabs
                   </>
                 )}
               </Button>
