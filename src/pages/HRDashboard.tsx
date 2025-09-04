@@ -204,7 +204,6 @@ const HRDashboard = () => {
                 <TableHead>Past 7 day Avg</TableHead>
                 <TableHead>Band</TableHead>
                 <TableHead>Avg Meetings/Day</TableHead>
-                <TableHead>After Hours (min/day)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -224,7 +223,6 @@ const HRDashboard = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>{member.avg_meetings}</TableCell>
-                    <TableCell>{member.avg_after_hours_min}</TableCell>
                   </TableRow>
                 );
               })}
