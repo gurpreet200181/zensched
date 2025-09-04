@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useQueryClient } from '@tanstack/react-query';
+import { CalendarSyncService } from '@/services/calendarSync';
 
 interface Profile {
   id: string;
@@ -322,11 +323,28 @@ const { toast } = useToast();
         console.log('Calendar added successfully');
         toast({
           title: "Calendar added",
-          description: "Your calendar has been successfully added.",
+          description: "Your calendar has been successfully added and is syncing...",
         });
         setNewCalendarUrl('');
         setIsCalendarDialogOpen(false);
         loadCalendars();
+        
+        // Trigger immediate sync for the new calendar and refresh dashboard
+        try {
+          console.log('Triggering calendar sync...');
+          await CalendarSyncService.syncAllUserCalendars(user.id);
+          
+          // Invalidate all relevant queries to refresh the dashboard immediately
+          queryClient.invalidateQueries({ queryKey: ['calendar-data'] });
+          queryClient.invalidateQueries({ queryKey: ['analytics-7d'] });
+          queryClient.invalidateQueries({ queryKey: ['daily-analytics'] });
+          queryClient.invalidateQueries({ queryKey: ['ai-recommendations'] });
+          
+          console.log('Calendar sync complete and dashboard refreshed');
+        } catch (syncError) {
+          console.error('Calendar sync failed:', syncError);
+          // Don't show error to user since calendar was added successfully
+        }
       }
     } catch (error: any) {
       console.error('Add calendar error:', error);
