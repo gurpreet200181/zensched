@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useTodayData } from '@/hooks/useTodayData';
 import { useTTS } from '@/hooks/useTTS';
-import VoiceStatusChip from '@/components/VoiceStatusChip';
 
 const DashboardSummary = () => {
   // Check if summary has been played this session (prevents auto-play on every Dashboard visit)
@@ -12,7 +11,7 @@ const DashboardSummary = () => {
     return sessionStorage.getItem('voiceSummaryPlayed') === 'true';
   });
   const { data: todayData, isLoading: dataLoading } = useTodayData();
-  const { speak, isLoading, isPlaying, currentProvider } = useTTS();
+  const { speak, isLoading, isPlaying } = useTTS();
 
   const generateSummary = (data: any) => {
     if (!data) return "Welcome to your dashboard! Loading your schedule data...";
@@ -92,7 +91,7 @@ const DashboardSummary = () => {
                 onClick={playAudioSummary}
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white border-green-500 hover:border-green-600"
+                className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 border-transparent"
                 disabled={isLoading}
               >
                 {isPlaying ? (
@@ -109,11 +108,6 @@ const DashboardSummary = () => {
               </Button>
             )}
           </div>
-        </div>
-        
-        {/* Voice Status Chip */}
-        <div className="mt-3 pt-2 border-t border-border/50 flex justify-end">
-          <VoiceStatusChip provider={currentProvider} />
         </div>
       </CardContent>
     </Card>
