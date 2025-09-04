@@ -89,23 +89,22 @@ export const useTTS = () => {
         URL.revokeObjectURL(audioUrl);
       };
 
-      audioElement.oncanplaythrough = async () => {
-        try {
-          await audioElement.play();
-          setIsPlaying(true);
-          setIsLoading(false);
-        } catch (playError) {
-          console.error('Error playing audio:', playError);
-          setIsPlaying(false);
-          setIsLoading(false);
-          toast({
-            title: "Audio playback failed",
-            description: "Could not play audio - check browser permissions",
-            variant: "destructive",
-          });
-        }
-      };
-
+      try {
+        await audioElement.play();
+        setIsPlaying(true);
+      } catch (playError: any) {
+        console.error('Error playing audio:', playError);
+        setIsPlaying(false);
+        toast({
+          title: playError?.name === 'NotAllowedError' ? 'Tap to play audio' : 'Audio playback failed',
+          description: playError?.name === 'NotAllowedError' 
+            ? 'Autoplay was blocked by the browser. Press the Play button to start.'
+            : 'Could not play audio - check browser permissions',
+          variant: playError?.name === 'NotAllowedError' ? 'default' : 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
     } catch (error) {
       console.error('Error in TTS:', error);
       toast({
