@@ -473,6 +473,7 @@ const Profile = () => {
                       <Label htmlFor="calendarUrl">Calendar URL (.ics)</Label>
                       <Input
                         id="calendarUrl"
+                        type="password"
                         value={newCalendarUrl}
                         onChange={(e) => setNewCalendarUrl(e.target.value)}
                         placeholder="https://example.com/calendar.ics"
@@ -511,7 +512,7 @@ const Profile = () => {
                           {calendar.provider.toUpperCase()} Calendar
                         </p>
                         <p className="text-sm text-gray-500 truncate max-w-md">
-                          {calendar.calendar_url}
+                          ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
                         </p>
                         <p className="text-xs text-gray-400">
                           Added {new Date(calendar.created_at).toLocaleDateString()}
