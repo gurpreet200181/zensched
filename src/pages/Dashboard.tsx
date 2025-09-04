@@ -103,12 +103,12 @@ const Dashboard = () => {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <Card className="mt-2">
-                  <CardContent className="p-4">
+                  <CardContent className="p-2 flex justify-center">
                     <Calendar
                       mode="single"
                       selected={selectedDate}
                       onSelect={handleDateSelect}
-                      className="w-full"
+                      className="pointer-events-auto"
                       disabled={(date) => {
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);
