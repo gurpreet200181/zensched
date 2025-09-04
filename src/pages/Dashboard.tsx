@@ -45,50 +45,66 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="space-y-6">
-        {/* Dashboard Summary - only show for today */}
+      <div className="space-y-1">
+        {/* Top Row - Dashboard Summary and Workload Index as squares */}
         {selectedDate.toDateString() === new Date().toDateString() && (
-          <DashboardSummary />
+          <div className="grid md:grid-cols-2 gap-4 mb-[2.5px]">
+            <div className="aspect-square">
+              <DashboardSummary />
+            </div>
+            <div className="aspect-square">
+              <WorkloadIndex score={data?.busynessScore || 0} />
+            </div>
+          </div>
         )}
-        {/* Workload Index */}
-        <WorkloadIndex score={data?.busynessScore || 0} />
+        
+        {/* Show only Workload Index if not today */}
+        {selectedDate.toDateString() !== new Date().toDateString() && (
+          <div className="mb-[2.5px]">
+            <WorkloadIndex score={data?.busynessScore || 0} />
+          </div>
+        )}
 
-        {/* Busy/Free Hours Cards */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex flex-col items-center text-center gap-2">
-                <Clock size={30} className="text-orange-500" />
-                <p className="text-sm text-gray-600">Busy Hours</p>
-                <p className="text-xl font-bold">
-                  {isLoading ? '—' : `${(data?.busyHours || 0).toFixed(1)}h`}
-                </p>
+        {/* Controls Row - Smaller controls aligned horizontally */}
+        <div className="grid md:grid-cols-3 gap-3">
+          {/* Busy Hours */}
+          <Card className="h-24">
+            <CardContent className="p-4 h-full">
+              <div className="flex items-center gap-3 h-full">
+                <Clock className="h-6 w-6 text-orange-500 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] text-gray-500">Busy Hours</p>
+                  <p className="text-xl font-bold truncate">
+                    {isLoading ? '—' : `${(data?.busyHours || 0).toFixed(1)}h`}
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex flex-col items-center text-center gap-2">
-                <Clock size={30} className="text-green-500" />
-                <p className="text-sm text-gray-600">Free Hours</p>
-                <p className="text-xl font-bold">
-                  {isLoading ? '—' : `${(data?.freeHours || 0).toFixed(1)}h`}
-                </p>
+          {/* Free Hours */}
+          <Card className="h-24">
+            <CardContent className="p-4 h-full">
+              <div className="flex items-center gap-3 h-full">
+                <Clock className="h-6 w-6 text-green-500 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-600">Free Hours</p>
+                  <p className="text-xl font-bold truncate">
+                    {isLoading ? '—' : `${(data?.freeHours || 0).toFixed(1)}h`}
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        <div className="grid lg:grid-cols-4 gap-6">
-          {/* Calendar Control - Collapsible */}
-          <div className="lg:col-span-1">
+          {/* Calendar Control */}
+          <div className="h-24">
             <Collapsible open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
               <CollapsibleTrigger asChild>
-                <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto">
+                <Button variant="outline" className="w-full h-24 flex items-center justify-between p-4">
                   <div className="flex items-center gap-2">
                     <CalendarIcon className="h-5 w-5" />
-                    <span>Select Date</span>
+                    <span className="text-sm">Select Date</span>
                   </div>
                   {isCalendarOpen ? (
                     <ChevronUp className="h-4 w-4" />
@@ -120,40 +136,40 @@ const Dashboard = () => {
               </CollapsibleContent>
             </Collapsible>
           </div>
+        </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* AI Wellness Recommendations */}
-            {!isLoading && !error && (
-              <WellnessRecommendations 
-                recommendations={data?.recommendations || []}
-                summary={data?.aiSummary}
-                aiEnabled={true}
-                aiLoading={aiLoading}
-              />
-            )}
+        {/* Main Content */}
+        <div className="space-y-6">
+          {/* AI Wellness Recommendations */}
+          {!isLoading && !error && (
+            <WellnessRecommendations 
+              recommendations={data?.recommendations || []}
+              summary={data?.aiSummary}
+              aiEnabled={true}
+              aiLoading={aiLoading}
+            />
+          )}
 
-            {/* Events List */}
-            {isLoading && (
-              <Card>
-                <CardContent className="p-6">
-                  <p className="text-gray-600">Loading your events…</p>
-                </CardContent>
-              </Card>
-            )}
-            
-            {error && (
-              <Card>
-                <CardContent className="p-6">
-                  <p className="text-red-600">Failed to load events.</p>
-                </CardContent>
-              </Card>
-            )}
-            
-            {!isLoading && !error && (
-              <EventList events={data?.events || []} />
-            )}
-          </div>
+          {/* Events List */}
+          {isLoading && (
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-gray-600">Loading your events…</p>
+              </CardContent>
+            </Card>
+          )}
+          
+          {error && (
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-red-600">Failed to load events.</p>
+              </CardContent>
+            </Card>
+          )}
+          
+          {!isLoading && !error && (
+            <EventList events={data?.events || []} />
+          )}
         </div>
       </div>
     </div>
