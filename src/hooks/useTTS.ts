@@ -47,37 +47,12 @@ export const useTTS = () => {
       setCurrentProvider(response.provider);
 
       if (response.provider === 'none' || !response.audioBase64) {
-        // Play fallback audio and show toast
-        const fallbackAudio = new Audio('/fallback/summary.mp3');
-        fallbackAudio.volume = 0.8;
-        
-        fallbackAudio.onended = () => setIsPlaying(false);
-        fallbackAudio.onerror = () => {
-          setIsPlaying(false);
-          toast({
-            title: "Audio playback failed",
-            description: "Could not play fallback audio",
-            variant: "destructive",
-          });
-        };
-
-        try {
-          setIsPlaying(true);
-          await fallbackAudio.play();
-          toast({
-            title: "Voice service hiccup",
-            description: "Playing fallback audio",
-            variant: "default",
-          });
-        } catch (playError) {
-          console.error('Fallback audio play error:', playError);
-          setIsPlaying(false);
-          toast({
-            title: "Audio playback failed",
-            description: "Could not play audio - check browser permissions",
-            variant: "destructive",
-          });
-        }
+        // Show info message instead of trying to play non-existent fallback audio
+        toast({
+          title: "Voice service unavailable",
+          description: response.detail || "TTS service is currently disabled",
+          variant: "default",
+        });
         
         setIsLoading(false);
         return;
