@@ -281,15 +281,27 @@ const { toast } = useToast();
     if (!user) return;
 
     setIsAddingCalendar(true);
+    console.log('Adding calendar for user:', user.id, 'URL length:', newCalendarUrl.length);
     
     try {
       // Encrypt URL before storing
+      console.log('Calling calendar-crypto function...');
       const { data: encrypted, error: encryptError } = await supabase.functions.invoke('calendar-crypto', {
         body: { action: 'encrypt', data: { url: newCalendarUrl } }
       });
       
-      if (encryptError) throw encryptError;
+      console.log('Encryption response:', { data: encrypted, error: encryptError });
+      
+      if (encryptError) {
+        console.error('Encryption error:', encryptError);
+        throw encryptError;
+      }
 
+      if (!encrypted?.encrypted) {
+        throw new Error('Failed to encrypt URL - no encrypted data returned');
+      }
+
+      console.log('Inserting calendar integration...');
       const { error } = await supabase
         .from('calendar_integrations')
         .insert({
@@ -300,12 +312,14 @@ const { toast } = useToast();
         });
 
       if (error) {
+        console.error('Database insert error:', error);
         toast({
           title: "Error adding calendar",
           description: error.message,
           variant: "destructive"
         });
       } else {
+        console.log('Calendar added successfully');
         toast({
           title: "Calendar added",
           description: "Your calendar has been successfully added.",
@@ -315,6 +329,7 @@ const { toast } = useToast();
         loadCalendars();
       }
     } catch (error: any) {
+      console.error('Add calendar error:', error);
       toast({
         title: "Error adding calendar",
         description: error.message || "Failed to encrypt calendar URL",
