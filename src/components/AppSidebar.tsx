@@ -25,22 +25,32 @@ export function AppSidebar() {
   const location = useLocation();
   const { isHROrAdmin } = useUserRole();
 
-  // Use React Query to fetch user profile data
-  const { data: userProfile } = useQuery({
-    queryKey: ['user-profile'],
+  // Get current user ID first
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      return user;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Use React Query to fetch user profile data with user-specific cache key
+  const { data: userProfile } = useQuery({
+    queryKey: ['user-profile', currentUser?.id],
+    queryFn: async () => {
+      if (!currentUser?.id) return null;
 
       const { data: profile } = await supabase
         .from('profiles')
         .select('display_name, avatar_url')
-        .eq('user_id', user.id)
+        .eq('user_id', currentUser.id)
         .single();
 
       return profile;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!currentUser?.id,
   });
 
   const menuItems = [
