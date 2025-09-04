@@ -7,9 +7,9 @@ const corsHeaders = {
 };
 
 // Secrets and defaults
-const ELEVEN_API_KEY = Deno.env.get('ELEVEN_API_KEY') || '';
-const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
-const DEFAULT_MODEL_ID = 'eleven_turbo_v2_5';
+const ELEVEN_API_KEY = Deno.env.get('ELEVEN_API_KEY') || Deno.env.get('ELEVENLABS_API_KEY') || '';
+const DEFAULT_VOICE_ID = Deno.env.get('ELEVEN_VOICE_ID') || '21m00Tcm4TlvDq8ikWAM';
+const DEFAULT_MODEL_ID = Deno.env.get('ELEVEN_MODEL_ID') || 'eleven_turbo_v2_5';
 
 serve(async (req) => {
   // CORS preflight
@@ -59,6 +59,10 @@ serve(async (req) => {
       body: JSON.stringify({
         text: trimmedText,
         model_id: resolvedModelId,
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.8,
+        },
       }),
     });
 
@@ -66,22 +70,24 @@ serve(async (req) => {
     if (!elevenResp.ok) {
       const detail = await elevenResp.text().catch(() => '');
       const status = elevenResp.status;
+      console.error('ElevenLabs API error:', status, detail);
       return new Response(
         JSON.stringify({ error: 'ElevenLabs error', status, detail }),
-        { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Stream audio/mpeg directly to client
-    return new Response(elevenResp.body, {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'audio/mpeg',
-        // Optional: expose length if present
-        // 'Content-Length': elevenResp.headers.get('content-length') || undefined,
-      },
-    });
+    // Convert audio to base64
+    const audioBuffer = await elevenResp.arrayBuffer();
+    const audioBase64 = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
+
+    return new Response(
+      JSON.stringify({ audioBase64, contentType: 'audio/mpeg' }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   } catch (err: any) {
     console.error('Error in elevenlabs-tts function:', err);
     return new Response(

@@ -83,9 +83,9 @@ const DailyNarrative = () => {
         console.error('TTS API Error:', error);
         setError('Voice synthesis temporarily unavailable');
         setFallbackNarrative(narrative);
-        // Optional local fallback sound if available
+        // Play local fallback sound if available
         try {
-          const fallbackAudio = new Audio('/fallback-briefing.mp3');
+          const fallbackAudio = new Audio('/fallback/summary.mp3');
           fallbackAudio.volume = 0.6;
           fallbackAudio.play().catch(() => {});
         } catch {}
@@ -93,9 +93,14 @@ const DailyNarrative = () => {
         return;
       }
 
-      if (data) {
-        // ElevenLabs now streams audio/mpeg directly; create a Blob from response data
-        const audioBlob = data instanceof Blob ? data : new Blob([data], { type: 'audio/mpeg' });
+      if (data?.audioBase64) {
+        // Convert base64 back to audio blob
+        const binaryString = atob(data.audioBase64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const audioBlob = new Blob([bytes], { type: data.contentType || 'audio/mpeg' });
         const audioUrl = URL.createObjectURL(audioBlob);
         const audioElement = new Audio(audioUrl);
 
