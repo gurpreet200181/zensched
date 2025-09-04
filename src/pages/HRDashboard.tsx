@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Users, Clock, AlertTriangle } from 'lucide-react';
+import { Users, Clock, AlertTriangle, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -33,6 +33,8 @@ const HRDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUserDrawerOpen, setIsUserDrawerOpen] = useState(false);
   const [bandFilter, setBandFilter] = useState<string>('all');
+  const [sortColumn, setSortColumn] = useState<keyof TeamMember | 'band' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -94,9 +96,50 @@ const HRDashboard = () => {
     setIsUserDrawerOpen(true);
   };
 
-  const filteredTeamData = teamData.filter((member) => {
+  const handleSort = (column: keyof TeamMember | 'band') => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (column: keyof TeamMember | 'band') => {
+    if (sortColumn !== column) {
+      return <ChevronsUpDown className="ml-2 h-4 w-4" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ChevronUp className="ml-2 h-4 w-4" />
+      : <ChevronDown className="ml-2 h-4 w-4" />;
+  };
+
+  const sortedAndFilteredTeamData = [...teamData.filter((member) => {
     const band = getBusynessBand(member.avg7_score);
     return bandFilter === 'all' || band.label.toLowerCase() === bandFilter;
+  })].sort((a, b) => {
+    if (!sortColumn) return 0;
+    
+    let aValue: any;
+    let bValue: any;
+    
+    if (sortColumn === 'band') {
+      aValue = getBusynessBand(a.avg7_score).label;
+      bValue = getBusynessBand(b.avg7_score).label;
+    } else {
+      aValue = a[sortColumn];
+      bValue = b[sortColumn];
+    }
+    
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return sortDirection === 'asc' 
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    } else {
+      return sortDirection === 'asc' 
+        ? aValue - bValue
+        : bValue - aValue;
+    }
   });
 
   const avgBusyness = teamData.length > 0 
@@ -200,14 +243,46 @@ const HRDashboard = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Employee</TableHead>
-                <TableHead className="whitespace-normal">Past 7 day Workload Index Average</TableHead>
-                <TableHead>Band</TableHead>
-                <TableHead>Avg Meetings/Day</TableHead>
+                <TableHead 
+                  className="cursor-pointer select-none hover:bg-muted/50"
+                  onClick={() => handleSort('display_name')}
+                >
+                  <div className="flex items-center">
+                    Employee
+                    {getSortIcon('display_name')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="whitespace-normal cursor-pointer select-none hover:bg-muted/50"
+                  onClick={() => handleSort('avg7_score')}
+                >
+                  <div className="flex items-center">
+                    Past 7 day Workload Index Average
+                    {getSortIcon('avg7_score')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer select-none hover:bg-muted/50"
+                  onClick={() => handleSort('band')}
+                >
+                  <div className="flex items-center">
+                    Band
+                    {getSortIcon('band')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer select-none hover:bg-muted/50"
+                  onClick={() => handleSort('avg_meetings')}
+                >
+                  <div className="flex items-center">
+                    Avg Meetings/Day
+                    {getSortIcon('avg_meetings')}
+                  </div>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTeamData.map((member) => {
+              {sortedAndFilteredTeamData.map((member) => {
                 const band = getBusynessBand(member.avg7_score);
                 return (
                   <TableRow 
@@ -229,7 +304,7 @@ const HRDashboard = () => {
             </TableBody>
           </Table>
           
-          {filteredTeamData.length === 0 && (
+          {sortedAndFilteredTeamData.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               <p>No team members match the current filters.</p>
             </div>
