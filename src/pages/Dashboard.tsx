@@ -45,10 +45,10 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-1">
         {/* Top Row - Dashboard Summary and Workload Index as squares */}
         {selectedDate.toDateString() === new Date().toDateString() && (
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-2 gap-4 mb-[2.5px]">
             <div className="aspect-square">
               <DashboardSummary />
             </div>
@@ -60,7 +60,9 @@ const Dashboard = () => {
         
         {/* Show only Workload Index if not today */}
         {selectedDate.toDateString() !== new Date().toDateString() && (
-          <WorkloadIndex score={data?.busynessScore || 0} />
+          <div className="mb-[2.5px]">
+            <WorkloadIndex score={data?.busynessScore || 0} />
+          </div>
         )}
 
         {/* Controls Row - Smaller controls aligned horizontally */}
