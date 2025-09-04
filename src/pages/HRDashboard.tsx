@@ -95,9 +95,7 @@ const HRDashboard = () => {
   };
 
   const handleRowClick = (member: TeamMember) => {
-    setSelectedUser(member);
-    loadUserHealth(member.user_id);
-    setIsUserDrawerOpen(true);
+    // Row click functionality removed
   };
 
   const handleSort = (column: keyof TeamMember | 'band') => {
@@ -291,8 +289,6 @@ const HRDashboard = () => {
                 return (
                   <TableRow 
                     key={member.user_id}
-                    className="cursor-pointer hover:bg-gray-50"
-                    onClick={() => handleRowClick(member)}
                   >
                     <TableCell className="font-medium">{member.display_name}</TableCell>
                     <TableCell>{member.avg7_score}</TableCell>
@@ -316,100 +312,6 @@ const HRDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* User Detail Drawer */}
-      <Sheet open={isUserDrawerOpen} onOpenChange={setIsUserDrawerOpen}>
-        <SheetContent className="w-[600px] sm:w-[540px]">
-          <SheetHeader>
-            <SheetTitle>
-              {selectedUser?.display_name} - 7-Day Wellness Trend
-            </SheetTitle>
-          </SheetHeader>
-          
-          {selectedUser && (
-            <div className="mt-6 space-y-6">
-              {/* Current Stats */}
-              <div className="grid grid-cols-2 gap-4">
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="text-2xl font-bold">{selectedUser.avg7_score}</div>
-                    <p className="text-sm text-gray-600">7-Day Average</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="text-2xl font-bold">{selectedUser.avg_meetings}</div>
-                    <p className="text-sm text-gray-600">Avg Meetings/Day</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Trend Chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Workload Trend (7 Days)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={userAnalytics}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis 
-                          dataKey="day" 
-                          tickFormatter={(value) => new Date(value).toLocaleDateString()}
-                        />
-                        <YAxis />
-                        <Tooltip 
-                          labelFormatter={(value) => new Date(value).toLocaleDateString()}
-                          formatter={(value, name) => [value, 'Workload Index']}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="busyness_score" 
-                          stroke="hsl(var(--primary))" 
-                          strokeWidth={2}
-                          dot={{ fill: "hsl(var(--primary))", strokeWidth: 2 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Meeting Count Chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Daily Meetings (7 Days)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={userAnalytics}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis 
-                          dataKey="day"
-                          tickFormatter={(value) => new Date(value).toLocaleDateString()}
-                        />
-                        <YAxis />
-                        <Tooltip 
-                          labelFormatter={(value) => new Date(value).toLocaleDateString()}
-                          formatter={(value, name) => [value, 'Meeting Count']}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="meeting_count" 
-                          stroke="hsl(var(--secondary))" 
-                          strokeWidth={2}
-                          dot={{ fill: "hsl(var(--secondary))", strokeWidth: 2 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
     </div>
   );
 };
