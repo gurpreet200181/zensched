@@ -72,98 +72,15 @@ const DailyNarrative = () => {
     
     try {
       const narrative = generateNarrative(todayData);
+      setFallbackNarrative(narrative);
+      setHasPlayed(true);
+      setIsLoading(false);
       
-      const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
-        body: {
-          text: narrative,
-        }
-      });
-
-      if (error) {
-        console.error('TTS API Error:', error);
-        setError('Voice synthesis temporarily unavailable');
-        setFallbackNarrative(narrative);
-        // Play local fallback sound if available
-        try {
-          const fallbackAudio = new Audio('/fallback/summary.mp3');
-          fallbackAudio.volume = 0.6;
-          fallbackAudio.play().catch(() => {});
-        } catch {}
-        setIsLoading(false);
-        return;
-      }
-
-      if (data?.audioBase64) {
-        // Convert base64 back to audio blob using the recommended approach
-        const byteChars = atob(data.audioBase64);
-        const byteNums = new Array(byteChars.length);
-        for (let i = 0; i < byteChars.length; i++) {
-          byteNums[i] = byteChars.charCodeAt(i);
-        }
-        const audioBlob = new Blob([new Uint8Array(byteNums)], { type: data.contentType || 'audio/mpeg' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audioElement = new Audio(audioUrl);
-
-        audioElement.volume = 0.8;
-
-        audioElement.onended = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(audioUrl);
-        };
-
-        audioElement.onerror = (e) => {
-          console.error('Audio playback error:', e);
-          setIsPlaying(false);
-          setIsLoading(false);
-          setError('Audio playback failed');
-          setFallbackNarrative(narrative);
-          URL.revokeObjectURL(audioUrl);
-          // Play fallback audio
-          try {
-            const fallbackAudio = new Audio('/fallback/summary.mp3');
-            fallbackAudio.volume = 0.6;
-            fallbackAudio.play().catch(() => {});
-          } catch {}
-        };
-
-        audioElement.oncanplaythrough = async () => {
-          try {
-            await audioElement.play();
-            setIsPlaying(true);
-            setHasPlayed(true);
-            setIsLoading(false);
-          } catch (playError) {
-            console.error('Error playing audio:', playError);
-            setIsPlaying(false);
-            setIsLoading(false);
-            setError('Could not play audio - check browser permissions');
-            setFallbackNarrative(narrative);
-            // Play fallback audio
-            try {
-              const fallbackAudio = new Audio('/fallback/summary.mp3');
-              fallbackAudio.volume = 0.6;
-              fallbackAudio.play().catch(() => {});
-            } catch {}
-          }
-        };
-
-        setAudio(audioElement);
-      } else {
-        console.error('TTS failed:', data?.detail || 'No audio content received');
-        setError('Voice synthesis failed');
-        setFallbackNarrative(narrative);
-        setIsLoading(false);
-        // Play fallback audio
-        try {
-          const fallbackAudio = new Audio('/fallback/summary.mp3');
-          fallbackAudio.volume = 0.6;
-          fallbackAudio.play().catch(() => {});
-        } catch {}
-      }
+      // For now, just show the text narrative
+      console.log('Daily narrative:', narrative);
     } catch (error) {
-      console.error('Error playing narrative:', error);
-      setError('Failed to generate voice briefing');
-      setFallbackNarrative(generateNarrative(todayData));
+      console.error('Error generating narrative:', error);
+      setError('Failed to generate daily briefing');
       setIsLoading(false);
     }
   };
