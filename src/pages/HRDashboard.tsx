@@ -52,6 +52,7 @@ const HRDashboard = () => {
       if (error) throw error;
       
       console.log('Team health response:', data);
+      console.log('Individual team member data:', data?.team);
       setTeamData((data as any)?.team || []);
     } catch (error: any) {
       console.error('Error loading team health:', error);
