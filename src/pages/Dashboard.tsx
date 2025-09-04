@@ -56,29 +56,25 @@ const Dashboard = () => {
         {/* Busy/Free Hours Cards */}
         <div className="grid md:grid-cols-2 gap-4">
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <Clock className="h-8 w-8 text-orange-500" />
-                <div>
-                  <p className="text-sm text-gray-600">Busy Hours</p>
-                  <p className="text-2xl font-bold">
-                    {isLoading ? '—' : `${(data?.busyHours || 0).toFixed(1)}h`}
-                  </p>
-                </div>
+            <CardContent className="p-4">
+              <div className="flex flex-col items-center text-center gap-2">
+                <Clock className="h-6 w-6 text-orange-500" />
+                <p className="text-sm text-gray-600">Busy Hours</p>
+                <p className="text-xl font-bold">
+                  {isLoading ? '—' : `${(data?.busyHours || 0).toFixed(1)}h`}
+                </p>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <Clock className="h-8 w-8 text-green-500" />
-                <div>
-                  <p className="text-sm text-gray-600">Free Hours</p>
-                  <p className="text-2xl font-bold">
-                    {isLoading ? '—' : `${(data?.freeHours || 0).toFixed(1)}h`}
-                  </p>
-                </div>
+            <CardContent className="p-4">
+              <div className="flex flex-col items-center text-center gap-2">
+                <Clock className="h-6 w-6 text-green-500" />
+                <p className="text-sm text-gray-600">Free Hours</p>
+                <p className="text-xl font-bold">
+                  {isLoading ? '—' : `${(data?.freeHours || 0).toFixed(1)}h`}
+                </p>
               </div>
             </CardContent>
           </Card>
