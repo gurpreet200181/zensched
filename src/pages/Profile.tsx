@@ -430,28 +430,42 @@ const { toast } = useToast();
   };
 
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('handleAvatarChange called');
     const file = event.target.files?.[0];
+    console.log('Selected file:', file);
     if (file) {
+      console.log('File details:', { name: file.name, size: file.size, type: file.type });
       setAvatarFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
+        console.log('FileReader loaded successfully');
         setAvatarPreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
+    } else {
+      console.log('No file selected');
     }
   };
 
   const uploadAvatar = async () => {
-    if (!avatarFile || !profile) return;
+    console.log('uploadAvatar called, avatarFile:', avatarFile, 'profile:', profile);
+    if (!avatarFile || !profile) {
+      console.log('Missing avatarFile or profile:', { avatarFile, profile });
+      return;
+    }
 
     setIsUploadingAvatar(true);
+    console.log('Starting avatar upload...');
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      console.log('User authenticated:', user.id);
+
       // Delete old avatar if exists
       if (profile.avatar_url) {
+        console.log('Deleting old avatar:', profile.avatar_url);
         const oldPath = profile.avatar_url.split('/').pop();
         if (oldPath) {
           await supabase.storage
@@ -465,16 +479,23 @@ const { toast } = useToast();
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
+      console.log('Uploading file to path:', filePath);
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, avatarFile);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
 
+      console.log('Upload successful, getting public URL...');
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
+
+      console.log('Public URL:', publicUrl);
 
       // Update profile with new avatar URL
       const { error: updateError } = await supabase
@@ -482,8 +503,12 @@ const { toast } = useToast();
         .update({ avatar_url: publicUrl })
         .eq('user_id', user.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Profile update error:', updateError);
+        throw updateError;
+      }
 
+      console.log('Profile updated successfully');
       setProfile({ ...profile, avatar_url: publicUrl });
       setAvatarFile(null);
       
@@ -492,6 +517,7 @@ const { toast } = useToast();
         description: "Your profile photo has been successfully updated.",
       });
     } catch (error: any) {
+      console.error('Avatar upload error:', error);
       toast({
         title: "Error uploading avatar",
         description: error.message,
@@ -553,15 +579,18 @@ const { toast } = useToast();
                     <Upload className="h-4 w-4 mr-2" />
                     Choose Photo
                   </Label>
-                  {avatarFile && (
-                    <Button 
-                      onClick={uploadAvatar} 
-                      disabled={isUploadingAvatar}
-                      size="sm"
-                    >
-                      {isUploadingAvatar ? 'Uploading...' : 'Save Photo'}
-                    </Button>
-                  )}
+                   {avatarFile && (
+                     <Button 
+                       onClick={() => {
+                         console.log('Save Photo button clicked');
+                         uploadAvatar();
+                       }} 
+                       disabled={isUploadingAvatar}
+                       size="sm"
+                     >
+                       {isUploadingAvatar ? 'Uploading...' : 'Save Photo'}
+                     </Button>
+                   )}
                 </div>
                 <p className="text-xs text-gray-500">
                   Recommended: Square image, max 2MB
