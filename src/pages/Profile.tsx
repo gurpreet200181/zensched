@@ -342,7 +342,7 @@ const { toast } = useToast();
           await CalendarSyncService.syncAllUserCalendars(user.id);
           
           // Invalidate all relevant queries to refresh the dashboard immediately
-          queryClient.invalidateQueries({ queryKey: ['calendar-data'] });
+          queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
           queryClient.invalidateQueries({ queryKey: ['analytics-7d'] });
           queryClient.invalidateQueries({ queryKey: ['daily-analytics'] });
           queryClient.invalidateQueries({ queryKey: ['ai-recommendations'] });
@@ -413,7 +413,7 @@ const { toast } = useToast();
 
         // Invalidate related caches so UI updates immediately
         try {
-          queryClient.invalidateQueries({ queryKey: ['calendar-data'] });
+          queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
           queryClient.invalidateQueries({ queryKey: ['analytics-7d'] });
           queryClient.invalidateQueries({ queryKey: ['daily-analytics'] });
         } catch (e) {
