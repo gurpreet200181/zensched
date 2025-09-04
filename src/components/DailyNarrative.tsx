@@ -94,13 +94,13 @@ const DailyNarrative = () => {
       }
 
       if (data?.audioBase64) {
-        // Convert base64 back to audio blob
-        const binaryString = atob(data.audioBase64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
+        // Convert base64 back to audio blob using the recommended approach
+        const byteChars = atob(data.audioBase64);
+        const byteNums = new Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) {
+          byteNums[i] = byteChars.charCodeAt(i);
         }
-        const audioBlob = new Blob([bytes], { type: data.contentType || 'audio/mpeg' });
+        const audioBlob = new Blob([new Uint8Array(byteNums)], { type: data.contentType || 'audio/mpeg' });
         const audioUrl = URL.createObjectURL(audioBlob);
         const audioElement = new Audio(audioUrl);
 
@@ -116,7 +116,14 @@ const DailyNarrative = () => {
           setIsPlaying(false);
           setIsLoading(false);
           setError('Audio playback failed');
+          setFallbackNarrative(narrative);
           URL.revokeObjectURL(audioUrl);
+          // Play fallback audio
+          try {
+            const fallbackAudio = new Audio('/fallback/summary.mp3');
+            fallbackAudio.volume = 0.6;
+            fallbackAudio.play().catch(() => {});
+          } catch {}
         };
 
         audioElement.oncanplaythrough = async () => {
@@ -130,14 +137,28 @@ const DailyNarrative = () => {
             setIsPlaying(false);
             setIsLoading(false);
             setError('Could not play audio - check browser permissions');
+            setFallbackNarrative(narrative);
+            // Play fallback audio
+            try {
+              const fallbackAudio = new Audio('/fallback/summary.mp3');
+              fallbackAudio.volume = 0.6;
+              fallbackAudio.play().catch(() => {});
+            } catch {}
           }
         };
 
         setAudio(audioElement);
       } else {
-        setError('No audio content received');
+        console.error('TTS failed:', data?.detail || 'No audio content received');
+        setError('Voice synthesis failed');
         setFallbackNarrative(narrative);
         setIsLoading(false);
+        // Play fallback audio
+        try {
+          const fallbackAudio = new Audio('/fallback/summary.mp3');
+          fallbackAudio.volume = 0.6;
+          fallbackAudio.play().catch(() => {});
+        } catch {}
       }
     } catch (error) {
       console.error('Error playing narrative:', error);

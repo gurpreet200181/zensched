@@ -36,12 +36,12 @@ serve(async (req) => {
 
     if (!text || typeof text !== 'string') {
       return new Response(
-        JSON.stringify({ error: 'Text is required' }),
+        JSON.stringify({ error: 'Text is required and must be a string' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Ensure text stays under ~500 characters
+    // Trim text to 500 characters max
     const trimmedText = text.slice(0, 500);
 
     const resolvedVoiceId = (voiceId && String(voiceId).trim()) || DEFAULT_VOICE_ID;
