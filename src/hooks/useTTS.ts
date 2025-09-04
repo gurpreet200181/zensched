@@ -43,7 +43,7 @@ export const useTTS = () => {
       }
 
       const response = data as TTSResponse;
-      console.log('TTS response:', { provider: response.provider, status: response.status });
+      console.log('TTS response:', { provider: response.provider, status: response.status, hasAudio: !!response.audioBase64, len: response.audioBase64?.length });
       setCurrentProvider(response.provider);
 
       if (response.provider === 'none' || !response.audioBase64) {

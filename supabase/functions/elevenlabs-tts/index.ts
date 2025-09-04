@@ -115,7 +115,9 @@ serve(async (req) => {
     }
 
     const audioBuffer = await response.arrayBuffer();
-    const audioBase64 = base64Encode(new Uint8Array(audioBuffer));
+    const audioBytes = new Uint8Array(audioBuffer);
+    const audioBase64 = base64Encode(audioBytes);
+    console.log('ElevenLabs audio ready', { bytes: audioBytes.length, b64Len: audioBase64.length });
 
     return new Response(
       JSON.stringify({
