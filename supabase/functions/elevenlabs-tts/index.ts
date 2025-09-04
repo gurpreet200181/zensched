@@ -29,19 +29,26 @@ serve(async (req) => {
       );
     }
 
-    const apiKey = Deno.env.get('ELEVENLABS_API_KEY') || Deno.env.get('XI_API_KEY');
-    
+    const candidateVars = ['ELEVENLABS_API_KEY', 'XI_API_KEY', 'ELEVEN_LABS_API_KEY'];
+    const resolved: Array<{ name: string; value: string | undefined }> = candidateVars.map(name => ({ name, value: Deno.env.get(name)?.trim() }));
+    const found = resolved.find(r => r.value);
+    const apiKey = found?.value;
+
     if (!apiKey) {
-      console.log('No ElevenLabs API key found in ELEVENLABS_API_KEY or XI_API_KEY, returning fallback');
+      console.log('ElevenLabs API key not found in any env var', {
+        checked: resolved.map(r => ({ name: r.name, present: Boolean(r.value) }))
+      });
       return new Response(
         JSON.stringify({
           provider: 'none',
           status: 200,
-          detail: 'ElevenLabs API key not configured. Set ELEVENLABS_API_KEY or XI_API_KEY in Supabase Function secrets.'
+          detail: 'Missing ElevenLabs API key. Set ELEVENLABS_API_KEY or XI_API_KEY in Supabase Function secrets.'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Using ElevenLabs API key from', found?.name);
 
     // Use Aria voice (voice ID: 9BWtsMINqrJLrRacOk9x)
     const voiceId = '9BWtsMINqrJLrRacOk9x';
