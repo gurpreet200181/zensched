@@ -512,6 +512,9 @@ const { toast } = useToast();
       setProfile({ ...profile, avatar_url: publicUrl });
       setAvatarFile(null);
       
+      // Invalidate user profile query to refresh sidebar
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      
       toast({
         title: "Avatar updated",
         description: "Your profile photo has been successfully updated.",

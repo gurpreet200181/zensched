@@ -1,7 +1,7 @@
 
-import { useState, useEffect } from 'react';
 import { Calendar, BarChart3, User, LogOut, Home, Users } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Sidebar,
   SidebarContent,
@@ -24,12 +24,13 @@ export function AppSidebar() {
   const { toast } = useToast();
   const location = useLocation();
   const { isHROrAdmin } = useUserRole();
-  const [userProfile, setUserProfile] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null);
 
-  useEffect(() => {
-    const fetchUserProfile = async () => {
+  // Use React Query to fetch user profile data
+  const { data: userProfile } = useQuery({
+    queryKey: ['user-profile'],
+    queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) return null;
 
       const { data: profile } = await supabase
         .from('profiles')
@@ -37,13 +38,10 @@ export function AppSidebar() {
         .eq('user_id', user.id)
         .single();
 
-      if (profile) {
-        setUserProfile(profile);
-      }
-    };
-
-    fetchUserProfile();
-  }, []);
+      return profile;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
 
   const menuItems = [
     { title: 'Dashboard', url: '/dashboard', icon: Home },
