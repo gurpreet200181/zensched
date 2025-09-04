@@ -53,23 +53,51 @@ serve(async (req) => {
 
     // Use Aria voice (voice ID: 9BWtsMINqrJLrRacOk9x)
     const voiceId = '9BWtsMINqrJLrRacOk9x';
-    
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'audio/mpeg',
-        'Content-Type': 'application/json',
-        'xi-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        text: text,
-        model_id: 'eleven_turbo_v2_5',
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-        },
-      }),
-    });
+
+    console.log('ElevenLabs TTS request', { textLen: text.length, voiceId });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort('timeout'), 20000); // 20s timeout
+
+    let response: Response;
+    try {
+      response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+        {
+          method: 'POST',
+          headers: {
+            'Accept': 'audio/mpeg',
+            'Content-Type': 'application/json',
+            'xi-api-key': apiKey,
+          },
+          body: JSON.stringify({
+            text,
+            model_id: 'eleven_turbo_v2_5',
+            output_format: 'mp3_44100_128',
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.75,
+            },
+          }),
+          signal: controller.signal,
+        });
+    } catch (e) {
+      clearTimeout(timeout);
+      const aborted = (e as any)?.name === 'AbortError' || String(e).includes('timeout');
+      console.error('ElevenLabs fetch error', e);
+      return new Response(
+        JSON.stringify({
+          provider: 'none',
+          status: aborted ? 504 : 502,
+          error: aborted ? 'TTS provider timeout' : 'TTS provider fetch failed',
+          detail: String(e),
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    clearTimeout(timeout);
+
+    console.log('ElevenLabs response', { ok: response.ok, status: response.status, type: response.type });
 
     if (!response.ok) {
       const errorText = await response.text();
