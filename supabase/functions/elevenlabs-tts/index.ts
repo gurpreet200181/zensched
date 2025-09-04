@@ -139,20 +139,28 @@ const synthOpenAI = async (text: string): Promise<any> => {
 };
 
 serve(async (req) => {
+  console.log('TTS function called:', req.method, req.url);
+  
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
+    console.log('TTS: Handling CORS preflight');
     return new Response('ok', { headers: corsHeaders });
   }
 
   if (req.method !== 'POST') {
+    console.log('TTS: Invalid method:', req.method);
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
       { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
+  console.log('TTS: Processing POST request');
+
   try {
-    const { text, voiceId } = await req.json();
+    const body = await req.json();
+    console.log('TTS: Request body received:', { textLength: body.text?.length });
+    const { text, voiceId } = body;
 
     if (!text || typeof text !== 'string') {
       return new Response(
@@ -163,6 +171,7 @@ serve(async (req) => {
 
     // Trim text to 300 characters max
     const trimmedText = text.slice(0, 300);
+    console.log('TTS: Processing text:', trimmedText.slice(0, 50) + '...');
     
     // Check cache first
     const cacheKey = await generateCacheKey(trimmedText);
@@ -235,7 +244,7 @@ serve(async (req) => {
       }
     );
   } catch (error: any) {
-    console.error('Error in elevenlabs-tts function:', error);
+    console.error('TTS: Unexpected error:', error);
     return new Response(
       JSON.stringify({ error: error?.message || 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

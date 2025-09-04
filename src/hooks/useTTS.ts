@@ -23,15 +23,19 @@ export const useTTS = () => {
     setIsLoading(true);
     
     try {
+      console.log('TTS: Calling edge function with text:', text.slice(0, 50) + '...');
+      
       const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
         body: { text }
       });
+
+      console.log('TTS: Function response:', { data, error });
 
       if (error) {
         console.error('TTS API Error:', error);
         toast({
           title: "Voice synthesis error",
-          description: "Unable to generate speech",
+          description: `Unable to generate speech: ${error.message || 'Unknown error'}`,
           variant: "destructive",
         });
         setIsLoading(false);
