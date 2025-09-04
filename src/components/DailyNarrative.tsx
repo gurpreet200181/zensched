@@ -11,6 +11,7 @@ const DailyNarrative = () => {
   const [hasPlayed, setHasPlayed] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [fallbackNarrative, setFallbackNarrative] = useState<string | null>(null);
   const { data: todayData, isLoading: dataLoading } = useTodayData();
 
   const generateNarrative = (data: any) => {
@@ -75,35 +76,36 @@ const DailyNarrative = () => {
       const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
         body: {
           text: narrative,
-          voice: 'Sarah'
         }
       });
 
       if (error) {
         console.error('TTS API Error:', error);
         setError('Voice synthesis temporarily unavailable');
+        setFallbackNarrative(narrative);
+        // Optional local fallback sound if available
+        try {
+          const fallbackAudio = new Audio('/fallback-briefing.mp3');
+          fallbackAudio.volume = 0.6;
+          fallbackAudio.play().catch(() => {});
+        } catch {}
         setIsLoading(false);
         return;
       }
 
-      if (data?.audioContent) {
-        // Create audio from base64
-        const audioBlob = new Blob(
-          [Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))],
-          { type: 'audio/mpeg' }
-        );
-        
+      if (data) {
+        // ElevenLabs now streams audio/mpeg directly; create a Blob from response data
+        const audioBlob = data instanceof Blob ? data : new Blob([data], { type: 'audio/mpeg' });
         const audioUrl = URL.createObjectURL(audioBlob);
         const audioElement = new Audio(audioUrl);
-        
-        // Set volume to ensure it's audible
+
         audioElement.volume = 0.8;
-        
+
         audioElement.onended = () => {
           setIsPlaying(false);
           URL.revokeObjectURL(audioUrl);
         };
-        
+
         audioElement.onerror = (e) => {
           console.error('Audio playback error:', e);
           setIsPlaying(false);
@@ -129,11 +131,13 @@ const DailyNarrative = () => {
         setAudio(audioElement);
       } else {
         setError('No audio content received');
+        setFallbackNarrative(narrative);
         setIsLoading(false);
       }
     } catch (error) {
       console.error('Error playing narrative:', error);
       setError('Failed to generate voice briefing');
+      setFallbackNarrative(generateNarrative(todayData));
       setIsLoading(false);
     }
   };
@@ -176,6 +180,9 @@ const DailyNarrative = () => {
               "Ready to play your daily briefing"
             )}
           </p>
+          {fallbackNarrative && (
+            <p className="mt-2 text-sm text-gray-700">{fallbackNarrative}</p>
+          )}
         </div>
         
         <div className="flex items-center gap-2">
