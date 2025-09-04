@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Calendar } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -15,8 +15,6 @@ import Analytics from "./pages/Analytics";
 import Profile from "./pages/Profile";
 import HRDashboard from "./pages/HRDashboard";
 import { supabase } from "@/integrations/supabase/client";
-
-const queryClient = new QueryClient();
 
 function AuthRouteEffects() {
   const navigate = useNavigate();
@@ -112,52 +110,57 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthRouteEffects />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route
-            path="/dashboard"
-            element={
-              <AppLayout>
-                <Dashboard />
-              </AppLayout>
-            }
-          />
-          <Route
-            path="/analytics"
-            element={
-              <AppLayout>
-                <Analytics />
-              </AppLayout>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <AppLayout>
-                <Profile />
-              </AppLayout>
-            }
-          />
-          <Route
-            path="/hr"
-            element={
-              <AppLayout>
-                <HRDashboard />
-              </AppLayout>
-            }
-          />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  // Create QueryClient inside component to ensure proper React context
+  const queryClient = useMemo(() => new QueryClient(), []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthRouteEffects />
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route
+              path="/dashboard"
+              element={
+                <AppLayout>
+                  <Dashboard />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/analytics"
+              element={
+                <AppLayout>
+                  <Analytics />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <AppLayout>
+                  <Profile />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/hr"
+              element={
+                <AppLayout>
+                  <HRDashboard />
+                </AppLayout>
+              }
+            />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
