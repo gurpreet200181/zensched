@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {
@@ -28,15 +29,15 @@ serve(async (req) => {
       );
     }
 
-    const apiKey = Deno.env.get('ELEVENLABS_API_KEY');
+    const apiKey = Deno.env.get('ELEVENLABS_API_KEY') || Deno.env.get('XI_API_KEY');
     
     if (!apiKey) {
-      console.log('No ElevenLabs API key found, returning fallback');
+      console.log('No ElevenLabs API key found in ELEVENLABS_API_KEY or XI_API_KEY, returning fallback');
       return new Response(
         JSON.stringify({
           provider: 'none',
           status: 200,
-          detail: 'No API key configured'
+          detail: 'ElevenLabs API key not configured. Set ELEVENLABS_API_KEY or XI_API_KEY in Supabase Function secrets.'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
