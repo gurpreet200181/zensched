@@ -43,6 +43,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   const loadUserData = async () => {
     try {
+      setIsLoading(true);
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       setUser(currentUser);
       
@@ -63,7 +64,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           .from('org_members')
           .select('role, org_id')
           .eq('user_id', currentUser.id)
-          .maybeSingle() : Promise.resolve(null)
+          .maybeSingle() : Promise.resolve({ data: null })
       ]);
 
       const userProfile = profileResult.data;
@@ -84,7 +85,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   };
 
   const refreshUser = async () => {
-    setIsLoading(true);
     await loadUserData();
   };
 

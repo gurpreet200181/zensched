@@ -125,10 +125,10 @@ const queryClient = new QueryClient({
 const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <UserProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <UserProvider>
           <BrowserRouter>
             <AuthRouteEffects />
             <Routes>
@@ -168,8 +168,8 @@ const App: React.FC = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-        </TooltipProvider>
-      </UserProvider>
+        </UserProvider>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 };
