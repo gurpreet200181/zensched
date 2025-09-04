@@ -118,6 +118,46 @@ const AuthDialog = ({ open, onOpenChange, initialMode = 'signup' }: AuthDialogPr
     }
   };
 
+  const handleForgotPassword = async () => {
+    const email = authForm.getValues('email');
+    if (!email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        toast({
+          title: "Reset failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Email sent!",
+          description: "Check your inbox for password reset instructions.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send reset email. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Remove the onCreateAccount function since it's no longer needed
 
   return (
@@ -212,6 +252,18 @@ const AuthDialog = ({ open, onOpenChange, initialMode = 'signup' }: AuthDialogPr
                         <Input type="password" placeholder="••••••••" className="pl-10" {...field} />
                       </div>
                     </FormControl>
+                    {mode === 'signin' && (
+                      <div className="text-right">
+                        <button
+                          type="button"
+                          onClick={handleForgotPassword}
+                          className="text-sm text-primary hover:underline"
+                          disabled={isLoading}
+                        >
+                          Forgot password?
+                        </button>
+                      </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
