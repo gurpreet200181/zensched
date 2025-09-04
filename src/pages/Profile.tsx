@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface Profile {
   id: string;
@@ -52,7 +53,8 @@ const Profile = () => {
   const [isAddingCalendar, setIsAddingCalendar] = useState(false);
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
   const [isCalendarDialogOpen, setIsCalendarDialogOpen] = useState(false);
-  const { toast } = useToast();
+const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     loadProfile();
@@ -335,18 +337,41 @@ const Profile = () => {
         variant: "destructive"
       });
     } else {
-      // Also delete associated events
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        // Remove events from this integration
         await supabase
           .from('events')
           .delete()
           .eq('calendar_integration_id', id);
+
+        // Refresh daily analytics for the last 30 days to keep dashboards in sync
+        const today = new Date();
+        const start = new Date();
+        start.setDate(today.getDate() - 30);
+        const fmt = (d: Date) => d.toISOString().slice(0, 10);
+        const { error: analyticsError } = await supabase.rpc('populate_daily_analytics_from_events', {
+          user_id_param: user.id,
+          start_date: fmt(start),
+          end_date: fmt(today),
+        });
+        if (analyticsError) {
+          console.error('Failed to refresh daily analytics:', analyticsError);
+        }
+
+        // Invalidate related caches so UI updates immediately
+        try {
+          queryClient.invalidateQueries({ queryKey: ['calendar-data'] });
+          queryClient.invalidateQueries({ queryKey: ['analytics-7d'] });
+          queryClient.invalidateQueries({ queryKey: ['daily-analytics'] });
+        } catch (e) {
+          console.warn('Cache invalidation failed', e);
+        }
       }
 
       toast({
         title: "Calendar deleted",
-        description: "Calendar and associated events have been removed.",
+        description: "Calendar, associated events, and analytics have been refreshed.",
       });
       loadCalendars();
     }
