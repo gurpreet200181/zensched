@@ -48,12 +48,16 @@ const Dashboard = () => {
       <div>
         {/* Top Row - Dashboard Summary and Workload Index as squares */}
         {selectedDate.toDateString() === new Date().toDateString() && (
-          <div className="grid md:grid-cols-2 gap-4" style={{ marginBottom: '2.5px' }}>
-            <div className="aspect-square">
-              <DashboardSummary />
+          <div className="grid md:grid-cols-2 gap-4 items-stretch" style={{ marginBottom: '2.5px' }}>
+            <div className="aspect-square flex">
+              <div className="w-full">
+                <DashboardSummary />
+              </div>
             </div>
-            <div className="aspect-square">
-              <WorkloadIndex score={data?.busynessScore || 0} />
+            <div className="aspect-square flex">
+              <div className="w-full">
+                <WorkloadIndex score={data?.busynessScore || 0} />
+              </div>
             </div>
           </div>
         )}
