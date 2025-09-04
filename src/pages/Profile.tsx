@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, Plus, Calendar, ExternalLink, Building2 } from 'lucide-react';
+import { Trash2, Plus, Calendar, ExternalLink, Building2, Camera, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useQueryClient } from '@tanstack/react-query';
 import { CalendarSyncService } from '@/services/calendarSync';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface Profile {
   id: string;
@@ -25,6 +26,7 @@ interface Profile {
   role: 'user' | 'hr';
   org_id: string | null;
   share_aggregate_with_org: boolean;
+  avatar_url?: string;
 }
 
 interface Organization {
@@ -54,6 +56,9 @@ const Profile = () => {
   const [isAddingCalendar, setIsAddingCalendar] = useState(false);
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
   const [isCalendarDialogOpen, setIsCalendarDialogOpen] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -81,6 +86,7 @@ const { toast } = useToast();
       setDisplayName(profileData.display_name || '');
       setSelectedOrgId(profileData.org_id || 'none');
       setShareWithOrg(profileData.share_aggregate_with_org || false);
+      setAvatarPreview(profileData.avatar_url || null);
 
       // Ensure membership exists if profile has an org_id but no membership row
       try {
@@ -226,7 +232,8 @@ const { toast } = useToast();
           org_id: selectedOrgId === 'none' ? null : selectedOrgId,
           share_aggregate_with_org: shareWithOrg,
           work_start_time: profile.work_start_time,
-          work_end_time: profile.work_end_time
+          work_end_time: profile.work_end_time,
+          avatar_url: profile.avatar_url
         })
         .eq('user_id', user.id);
 
@@ -422,6 +429,79 @@ const { toast } = useToast();
     }
   };
 
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setAvatarPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadAvatar = async () => {
+    if (!avatarFile || !profile) return;
+
+    setIsUploadingAvatar(true);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Delete old avatar if exists
+      if (profile.avatar_url) {
+        const oldPath = profile.avatar_url.split('/').pop();
+        if (oldPath) {
+          await supabase.storage
+            .from('avatars')
+            .remove([`${user.id}/${oldPath}`]);
+        }
+      }
+
+      // Upload new avatar
+      const fileExt = avatarFile.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, avatarFile);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update profile with new avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      setProfile({ ...profile, avatar_url: publicUrl });
+      setAvatarFile(null);
+      
+      toast({
+        title: "Avatar updated",
+        description: "Your profile photo has been successfully updated.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error uploading avatar",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-6 py-8 max-w-4xl">
       <div className="mb-8">
@@ -446,6 +526,49 @@ const { toast } = useToast();
             <CardTitle>Personal Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Profile Photo Section */}
+            <div className="flex items-center space-x-4">
+              <Avatar className="h-20 w-20">
+                <AvatarImage 
+                  src={avatarPreview || profile?.avatar_url || ''} 
+                  alt={displayName || 'Profile'} 
+                />
+                <AvatarFallback className="text-lg">
+                  {displayName ? displayName.charAt(0).toUpperCase() : <Camera className="h-8 w-8" />}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col space-y-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                    id="avatar-upload"
+                  />
+                  <Label 
+                    htmlFor="avatar-upload" 
+                    className="cursor-pointer inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Choose Photo
+                  </Label>
+                  {avatarFile && (
+                    <Button 
+                      onClick={uploadAvatar} 
+                      disabled={isUploadingAvatar}
+                      size="sm"
+                    >
+                      {isUploadingAvatar ? 'Uploading...' : 'Save Photo'}
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500">
+                  Recommended: Square image, max 2MB
+                </p>
+              </div>
+            </div>
+            
             <div>
               <Label htmlFor="displayName">Display Name</Label>
               <Input
