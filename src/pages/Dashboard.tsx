@@ -4,6 +4,7 @@ import { Calendar } from '@/components/ui/calendar';
 import BusynessScore from '@/components/BusynessScore';
 import EventList from '@/components/EventList';
 import WellnessRecommendations from '@/components/WellnessRecommendations';
+import DashboardSummary from '@/components/DashboardSummary';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,10 @@ const Dashboard = () => {
       </div>
 
       <div className="space-y-6">
+        {/* Dashboard Summary - only show for today */}
+        {selectedDate.toDateString() === new Date().toDateString() && (
+          <DashboardSummary />
+        )}
         {/* Busyness Score */}
         <BusynessScore score={data?.busynessScore || 0} />
 
