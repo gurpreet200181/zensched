@@ -1,7 +1,7 @@
 
 import { Calendar, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import BusynessScore from './BusynessScore';
+import WorkloadIndex from './WorkloadIndex';
 import EventList from './EventList';
 import WellnessRecommendations from './WellnessRecommendations';
 import AnalyticsChart from './AnalyticsChart';
@@ -127,7 +127,7 @@ const DashboardDemo = () => {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-8">
-            <BusynessScore score={58} />
+            <WorkloadIndex score={58} />
             <EventList events={sampleEvents} />
             
             {/* Analytics Section */}

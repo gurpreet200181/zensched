@@ -1,12 +1,12 @@
 
 import { Clock, AlertTriangle, CheckCircle, Activity } from 'lucide-react';
 
-interface BusynessScoreProps {
+interface WorkloadIndexProps {
   score: number;
   className?: string;
 }
 
-const BusynessScore = ({ score, className = "" }: BusynessScoreProps) => {
+const WorkloadIndex = ({ score, className = "" }: WorkloadIndexProps) => {
   const getBusynessLevel = (score: number) => {
     if (score < 40) return { level: 'calm', label: 'Calm', icon: CheckCircle };
     if (score < 60) return { level: 'moderate', label: 'Moderate', icon: Clock };
@@ -19,7 +19,7 @@ const BusynessScore = ({ score, className = "" }: BusynessScoreProps) => {
   return (
     <div className={`wellness-card p-6 ${className}`}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-medium text-gray-700">Busyness Score</h3>
+        <h3 className="text-lg font-medium text-gray-700">Workload Index</h3>
         <Icon className="h-5 w-5 text-gray-500" />
       </div>
       
@@ -58,4 +58,4 @@ const BusynessScore = ({ score, className = "" }: BusynessScoreProps) => {
   );
 };
 
-export default BusynessScore;
+export default WorkloadIndex;

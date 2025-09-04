@@ -57,7 +57,7 @@ export function useTodayData() {
 
       if (eventsError) throw eventsError;
 
-      // Try to load the stored busyness score from daily_analytics; if missing, compute estimate
+      // Try to load the stored workload index from daily_analytics; if missing, compute estimate
       const { data: scoreRow } = await supabase
         .from("daily_analytics")
         .select("busyness_score")

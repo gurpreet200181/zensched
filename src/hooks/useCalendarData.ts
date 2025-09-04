@@ -105,8 +105,8 @@ export function useCalendarData(selectedDate: Date = new Date()) {
       const breakHours = Math.round((breakMinutes / 60) * 10) / 10;
       const freeHours = Math.max(0, workDayHours - busyHours + breakHours);
       
-      // Try to get the stored busyness score from daily_analytics first
-      let busynessScore = 0;
+      // Try to get the stored workload index from daily_analytics first
+      let workloadScore = 0;
       const { data: analyticsData } = await supabase
         .from('daily_analytics')
         .select('busyness_score')
@@ -115,23 +115,23 @@ export function useCalendarData(selectedDate: Date = new Date()) {
         .maybeSingle();
       
       if (analyticsData?.busyness_score !== undefined) {
-        busynessScore = analyticsData.busyness_score;
+        workloadScore = analyticsData.busyness_score;
       } else {
         // Fallback to calculated score if no stored data
-        busynessScore = Math.min(100, Math.round((busyHours / workDayHours) * 100));
+        workloadScore = Math.min(100, Math.round((busyHours / workDayHours) * 100));
       }
 
       console.log('Calendar data processed:', {
         totalEvents: calendarEvents.length,
         busyHours,
         freeHours,
-        busynessScore,
+        workloadScore,
         breakHours
       });
 
       return {
         events: calendarEvents,
-        busynessScore,
+        busynessScore: workloadScore,
         busyHours,
         freeHours,
         totalEvents: calendarEvents.length,

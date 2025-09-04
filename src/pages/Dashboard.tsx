@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Calendar } from '@/components/ui/calendar';
-import BusynessScore from '@/components/BusynessScore';
+import WorkloadIndex from '@/components/WorkloadIndex';
 import EventList from '@/components/EventList';
 import WellnessRecommendations from '@/components/WellnessRecommendations';
 import DashboardSummary from '@/components/DashboardSummary';
@@ -50,8 +50,8 @@ const Dashboard = () => {
         {selectedDate.toDateString() === new Date().toDateString() && (
           <DashboardSummary />
         )}
-        {/* Busyness Score */}
-        <BusynessScore score={data?.busynessScore || 0} />
+        {/* Workload Index */}
+        <WorkloadIndex score={data?.busynessScore || 0} />
 
         {/* Busy/Free Hours Cards */}
         <div className="grid md:grid-cols-2 gap-4">
