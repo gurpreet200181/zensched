@@ -1,4 +1,5 @@
 
+import { useState, useEffect } from 'react';
 import { Calendar, BarChart3, User, LogOut, Home, Users } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
@@ -14,6 +15,7 @@ import {
   SidebarHeader,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -22,6 +24,26 @@ export function AppSidebar() {
   const { toast } = useToast();
   const location = useLocation();
   const { isHROrAdmin } = useUserRole();
+  const [userProfile, setUserProfile] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name, avatar_url')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile) {
+        setUserProfile(profile);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   const menuItems = [
     { title: 'Dashboard', url: '/dashboard', icon: Home },
@@ -87,7 +109,31 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-4 space-y-3">
+        {/* User Profile Section */}
+        {userProfile && (
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+            <Avatar className="h-10 w-10">
+              <AvatarImage 
+                src={userProfile.avatar_url || ''} 
+                alt={userProfile.display_name || 'User'} 
+              />
+              <AvatarFallback className="text-sm">
+                {userProfile.display_name 
+                  ? userProfile.display_name.charAt(0).toUpperCase() 
+                  : <User className="h-5 w-5" />
+                }
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {userProfile.display_name || 'User'}
+              </p>
+            </div>
+          </div>
+        )}
+        
+        {/* Sign Out Button */}
         <Button 
           variant="ghost" 
           onClick={handleSignOut}
