@@ -5,7 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { Calendar } from "lucide-react";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -91,9 +92,21 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
-        <main className="flex-1 bg-wellness-gradient">
-          {children}
-        </main>
+        <div className="flex-1 bg-wellness-gradient">
+          {/* Mobile header with sidebar trigger */}
+          <header className="flex items-center h-14 border-b border-white/20 bg-white/40 backdrop-blur-md md:hidden">
+            <SidebarTrigger className="ml-4" />
+            <div className="flex items-center gap-2 ml-4">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <Calendar className="h-5 w-5 text-white" />
+              </div>
+              <h1 className="text-lg font-bold gradient-text">ZenSched</h1>
+            </div>
+          </header>
+          <main className="flex-1">
+            {children}
+          </main>
+        </div>
       </div>
     </SidebarProvider>
   );
