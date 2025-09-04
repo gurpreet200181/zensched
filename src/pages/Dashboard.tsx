@@ -58,7 +58,7 @@ const Dashboard = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex flex-col items-center text-center gap-2">
-                <Clock size={20} className="text-orange-500" />
+                <Clock size={30} className="text-orange-500" />
                 <p className="text-sm text-gray-600">Busy Hours</p>
                 <p className="text-xl font-bold">
                   {isLoading ? '—' : `${(data?.busyHours || 0).toFixed(1)}h`}
@@ -70,7 +70,7 @@ const Dashboard = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex flex-col items-center text-center gap-2">
-                <Clock size={20} className="text-green-500" />
+                <Clock size={30} className="text-green-500" />
                 <p className="text-sm text-gray-600">Free Hours</p>
                 <p className="text-xl font-bold">
                   {isLoading ? '—' : `${(data?.freeHours || 0).toFixed(1)}h`}
