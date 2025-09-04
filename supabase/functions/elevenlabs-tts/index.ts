@@ -61,7 +61,7 @@ serve(async (req) => {
 
     let response: Response;
     try {
-      response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream?optimize_streaming_latency=0`,
         {
           method: 'POST',
           headers: {
