@@ -4,7 +4,7 @@ import { Calendar } from '@/components/ui/calendar';
 import BusynessScore from '@/components/BusynessScore';
 import EventList from '@/components/EventList';
 import WellnessRecommendations from '@/components/WellnessRecommendations';
-import DailyNarrative from '@/components/DailyNarrative';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -45,11 +45,6 @@ const Dashboard = () => {
       </div>
 
       <div className="space-y-6">
-        {/* Daily Narrative - only show for today */}
-        {selectedDate.toDateString() === new Date().toDateString() && (
-          <DailyNarrative />
-        )}
-
         {/* Busyness Score */}
         <BusynessScore score={data?.busynessScore || 0} />
 
