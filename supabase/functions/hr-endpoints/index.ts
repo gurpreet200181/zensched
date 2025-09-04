@@ -108,13 +108,13 @@ Deno.serve(async (req) => {
         if (!userId) throw new Error('missing_user_id')
 
         console.log('Fetching user health (POST) for:', userId)
-        const fourteenDaysAgo = new Date()
-        fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
+        const sevenDaysAgo = new Date()
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
         const { data, error } = await supabase
           .from('daily_analytics')
           .select('day, busyness_score, meeting_count, after_hours_min, largest_free_min, user_id')
           .eq('user_id', userId)
-          .gte('day', fourteenDaysAgo.toISOString().slice(0, 10))
+          .gte('day', sevenDaysAgo.toISOString().slice(0, 10))
           .order('day', { ascending: true })
 
         if (error) {
@@ -122,6 +122,7 @@ Deno.serve(async (req) => {
           throw error
         }
 
+        console.log('User health data returned:', { userId, recordCount: data?.length, data })
         return new Response(
           JSON.stringify({ days: data || [] }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -158,14 +159,14 @@ Deno.serve(async (req) => {
 
       console.log('Fetching user health for:', userId)
 
-      const fourteenDaysAgo = new Date()
-      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
+      const sevenDaysAgo = new Date()
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
       
       const { data, error } = await supabase
         .from('daily_analytics')
         .select('day, busyness_score, meeting_count, after_hours_min, largest_free_min, user_id')
         .eq('user_id', userId)
-        .gte('day', fourteenDaysAgo.toISOString().slice(0, 10))
+        .gte('day', sevenDaysAgo.toISOString().slice(0, 10))
         .order('day', { ascending: true })
 
       if (error) {
@@ -173,6 +174,7 @@ Deno.serve(async (req) => {
         throw error
       }
 
+      console.log('User health data returned:', { userId, recordCount: data?.length, data })
       return new Response(
         JSON.stringify({ days: data || [] }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

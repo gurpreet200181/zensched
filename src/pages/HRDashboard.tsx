@@ -67,12 +67,15 @@ const HRDashboard = () => {
 
   const loadUserHealth = async (userId: string) => {
     try {
+      console.log('Loading user health for UUID:', userId);
       const { data, error } = await supabase.functions.invoke('hr-endpoints', {
         body: { route: 'user-health', userId },
       });
       
       if (error) throw error;
       
+      console.log('User health data received:', data);
+      console.log('Analytics days array:', (data as any)?.days);
       setUserAnalytics((data as any)?.days || []);
     } catch (error: any) {
       console.error('Error loading user health:', error);
@@ -318,7 +321,7 @@ const HRDashboard = () => {
         <SheetContent className="w-[600px] sm:w-[540px]">
           <SheetHeader>
             <SheetTitle>
-              {selectedUser?.display_name} - 14-Day Wellness Trend
+              {selectedUser?.display_name} - 7-Day Wellness Trend
             </SheetTitle>
           </SheetHeader>
           
@@ -343,7 +346,7 @@ const HRDashboard = () => {
               {/* Trend Chart */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Workload Trend (14 Days)</CardTitle>
+                  <CardTitle>Workload Trend (7 Days)</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="h-64">
@@ -375,7 +378,7 @@ const HRDashboard = () => {
               {/* Meeting Count Chart */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Daily Meetings (14 Days)</CardTitle>
+                  <CardTitle>Daily Meetings (7 Days)</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="h-64">
