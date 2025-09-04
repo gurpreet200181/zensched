@@ -350,6 +350,18 @@ const { toast } = useToast();
         const start = new Date();
         start.setDate(today.getDate() - 30);
         const fmt = (d: Date) => d.toISOString().slice(0, 10);
+
+        // Clear existing analytics for this window to avoid stale data
+        const { error: delErr } = await supabase
+          .from('daily_analytics')
+          .delete()
+          .eq('user_id', user.id)
+          .gte('day', fmt(start));
+        if (delErr) {
+          console.warn('Could not clear daily_analytics (likely due to RLS policy):', delErr);
+        }
+
+        // Recompute analytics from remaining events
         const { error: analyticsError } = await supabase.rpc('populate_daily_analytics_from_events', {
           user_id_param: user.id,
           start_date: fmt(start),
