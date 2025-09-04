@@ -63,7 +63,7 @@ const WellnessHero = () => {
             <Button 
               size="lg"
               onClick={() => setShowAuthDialog(true)}
-              className="bg-white/20 backdrop-blur-md hover:bg-white/30 text-white border border-white/30 hover:border-white/50 rounded-xl px-16 py-8 text-2xl font-semibold transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 animate-pulse"
+              className="bg-white/20 backdrop-blur-md hover:bg-white/30 text-white border border-white/30 hover:border-white/50 rounded-xl px-16 py-8 text-2xl font-semibold transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 animate-breathe"
             >
               Get Started Free
             </Button>
