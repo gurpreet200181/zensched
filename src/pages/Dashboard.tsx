@@ -63,7 +63,7 @@ const Dashboard = () => {
           <WorkloadIndex score={data?.busynessScore || 0} />
         )}
 
-        {/* Bottom Row - Smaller controls aligned horizontally */}
+        {/* Controls Row - Smaller controls aligned horizontally */}
         <div className="grid md:grid-cols-3 gap-4">
           {/* Busy Hours */}
           <Card className="h-24">
