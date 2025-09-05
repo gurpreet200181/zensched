@@ -2,7 +2,6 @@
 import { Calendar, Settings } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import zenschedLogo from "@/assets/zensched-logo.png";
 
 const AppNav = () => {
   return (
@@ -10,7 +9,9 @@ const AppNav = () => {
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <img src={zenschedLogo} alt="ZenSched Logo" className="w-10 h-10" />
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+              <Calendar className="h-6 w-6 text-white" />
+            </div>
             <h1 className="text-xl font-bold gradient-text">ZenSched</h1>
           </Link>
 
