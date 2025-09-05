@@ -160,6 +160,47 @@ const AuthDialog = ({ open, onOpenChange, initialMode = 'signup' }: AuthDialogPr
 
   // Remove the onCreateAccount function since it's no longer needed
 
+  const handleResendVerification = async () => {
+    const email = authForm.getValues('email');
+    if (!email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+
+      if (error) {
+        toast({
+          title: "Resend failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Verification email sent",
+          description: "Please check your inbox (and spam folder).",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to resend verification email. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -272,6 +313,19 @@ const AuthDialog = ({ open, onOpenChange, initialMode = 'signup' }: AuthDialogPr
               <Button type="submit" className="w-full wellness-button" disabled={isLoading}>
                 {isLoading ? 'Loading...' : (mode === 'signup' ? 'Create Account' : 'Sign In')}
               </Button>
+
+              {mode === 'signup' && (
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    className="text-sm text-primary hover:underline"
+                    disabled={isLoading}
+                  >
+                    Didn't get the email? Resend verification
+                  </button>
+                </div>
+              )}
 
               <div className="text-center text-sm text-muted-foreground">
                 {mode === 'signup' ? (
