@@ -124,7 +124,7 @@ const { toast } = useToast();
 
     const { data, error } = await supabase
       .from('calendar_integrations')
-      .select('*')
+      .select('id, provider, calendar_url, is_active, last_sync, created_at, updated_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 

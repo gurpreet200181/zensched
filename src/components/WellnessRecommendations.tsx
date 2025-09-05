@@ -40,7 +40,7 @@ const WellnessRecommendations = ({
 
         const { data: integrations } = await supabase
           .from('calendar_integrations')
-          .select('calendar_url')
+          .select('id, calendar_url')
           .eq('user_id', sessionData.session.user.id)
           .eq('is_active', true)
           .limit(1);

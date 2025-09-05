@@ -10,7 +10,7 @@ export class CalendarSyncService {
       // Get all active calendar integrations for the user
       const { data: integrations, error } = await supabase
         .from('calendar_integrations')
-        .select('*')
+        .select('id, user_id, provider, calendar_url, is_active, last_sync')
         .eq('user_id', userId)
         .eq('is_active', true);
 
