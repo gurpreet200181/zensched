@@ -3,6 +3,7 @@ import { Calendar, Brain, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import AuthDialog from './AuthDialog';
+import zenschedLogo from "@/assets/zensched-logo.png";
 
 const WellnessHero = () => {
   const [showAuthDialog, setShowAuthDialog] = useState(false);
@@ -21,7 +22,7 @@ const WellnessHero = () => {
           {/* Logo/Icon */}
           <div className="mb-8 animate-fade-in">
             <div className="w-24 h-24 mx-auto bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 breathe">
-              <Calendar className="h-12 w-12 text-white" />
+              <img src={zenschedLogo} alt="ZenSched Logo" className="w-16 h-16 object-contain" />
             </div>
           </div>
 
