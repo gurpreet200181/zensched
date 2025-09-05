@@ -4,14 +4,37 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useTodayData } from '@/hooks/useTodayData';
 import { useTTS } from '@/hooks/useTTS';
+import { supabase } from '@/integrations/supabase/client';
 
 const DashboardSummary = () => {
+  const [user, setUser] = useState<any>(null);
   // Check if summary has been played this session (prevents auto-play on every Dashboard visit)
   const [hasPlayed, setHasPlayed] = useState(() => {
     return sessionStorage.getItem('voiceSummaryPlayed') === 'true';
   });
   const { data: todayData, isLoading: dataLoading } = useTodayData();
-  const { speak, isLoading, isPlaying } = useTTS();
+  const { speak, isLoading, isPlaying, stop } = useTTS();
+
+  // Monitor auth state and clear session when user logs out
+  useEffect(() => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+      
+      if (event === 'SIGNED_OUT') {
+        // Clear the played flag and stop any audio when user logs out
+        sessionStorage.removeItem('voiceSummaryPlayed');
+        setHasPlayed(false);
+        stop();
+      }
+    });
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user || null);
+    });
+
+    return () => subscription.subscription.unsubscribe();
+  }, [stop]);
 
   const generateSummary = (data: any) => {
     if (!data) return "Welcome to your dashboard! Loading your schedule data...";
@@ -63,10 +86,10 @@ const DashboardSummary = () => {
 
   // Auto-play only on first Dashboard visit after login (not on subsequent navigation)
   useEffect(() => {
-    if (todayData && !hasPlayed && !dataLoading && !isLoading) {
+    if (user && todayData && !hasPlayed && !dataLoading && !isLoading) {
       playAudioSummary();
     }
-  }, [todayData, hasPlayed, dataLoading, isLoading]);
+  }, [user, todayData, hasPlayed, dataLoading, isLoading]);
 
   if (dataLoading) {
     return null;
