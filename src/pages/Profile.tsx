@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, Plus, Calendar, ExternalLink, Building2, Camera, Upload, Link } from 'lucide-react';
+import { Trash2, Plus, Calendar, ExternalLink, Building2, Camera, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -59,7 +59,6 @@ const Profile = () => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
 const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -67,52 +66,7 @@ const { toast } = useToast();
     loadProfile();
     loadCalendars();
     loadOrganizations();
-    
-    // Handle Google Calendar OAuth callback
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('google_calendar') === 'success') {
-      handleGoogleCalendarCallback();
-      // Clean up URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
   }, []);
-
-  const handleGoogleCalendarCallback = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.provider_token || !session?.user) {
-        throw new Error('No Google access token found');
-      }
-
-      setIsConnectingGoogle(true);
-      
-      const { data, error } = await supabase.functions.invoke('google-calendar-sync', {
-        body: {
-          action: 'sync',
-          accessToken: session.provider_token,
-          user_id: session.user.id,
-        },
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Google Calendar connected",
-        description: `Successfully synced ${data.eventsCount || 0} events from your Google Calendar.`,
-      });
-
-      loadCalendars();
-    } catch (error: any) {
-      console.error('Google Calendar sync error:', error);
-      toast({
-        title: "Google Calendar sync failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsConnectingGoogle(false);
-    }
-  };
 
   const loadProfile = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -577,30 +531,6 @@ const { toast } = useToast();
     }
   };
 
-  const connectGoogleCalendar = async () => {
-    setIsConnectingGoogle(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          scopes: 'https://www.googleapis.com/auth/calendar.readonly',
-          redirectTo: `${window.location.origin}/profile?google_calendar=success`,
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
-    } catch (error: any) {
-      toast({
-        title: "Google Calendar connection failed",
-        description: error.message,
-        variant: "destructive",
-      });
-      setIsConnectingGoogle(false);
-    }
-  };
-
   return (
     <div className="container mx-auto px-6 py-8 max-w-4xl">
       <div className="mb-8">
@@ -752,23 +682,13 @@ const { toast } = useToast();
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               Calendar Integrations
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={connectGoogleCalendar}
-                  disabled={calendars.length > 0 || isConnectingGoogle}
-                  className="bg-[#4285f4] hover:bg-[#3367d6] text-white"
-                >
-                  <Calendar className="h-4 w-4 mr-2" />
-                  {isConnectingGoogle ? 'Connecting...' : 'Connect Google Calendar'}
-                </Button>
-                <Dialog open={isCalendarDialogOpen} onOpenChange={setIsCalendarDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" variant="outline" disabled={calendars.length > 0}>
-                      <Link className="h-4 w-4 mr-2" />
-                      Add ICS URL
-                    </Button>
-                  </DialogTrigger>
+              <Dialog open={isCalendarDialogOpen} onOpenChange={setIsCalendarDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" disabled={calendars.length > 0}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Calendar
+                  </Button>
+                </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Add ICS Calendar</DialogTitle>
@@ -792,9 +712,8 @@ const { toast } = useToast();
                       {isAddingCalendar ? 'Adding...' : 'Add Calendar'}
                     </Button>
                   </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
+                </DialogContent>
+              </Dialog>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -802,7 +721,7 @@ const { toast } = useToast();
               <div className="text-center py-8 text-gray-500">
                 <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No calendars connected yet.</p>
-                <p className="text-sm">Connect your Google Calendar or add an ICS URL to get started.</p>
+                <p className="text-sm">Add an ICS calendar to get started.</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -814,17 +733,8 @@ const { toast } = useToast();
                     <div className="flex items-center gap-3">
                       <Calendar className="h-5 w-5 text-primary" />
                       <div>
-                        <p className="font-medium flex items-center gap-2">
-                          {calendar.provider === 'google' ? (
-                            <>
-                              <div className="w-4 h-4 bg-[#4285f4] rounded-full flex items-center justify-center">
-                                <Calendar className="h-2.5 w-2.5 text-white" />
-                              </div>
-                              Google Calendar
-                            </>
-                          ) : (
-                            `${calendar.provider.toUpperCase()} Calendar`
-                          )}
+                        <p className="font-medium">
+                          {calendar.provider.toUpperCase()} Calendar
                         </p>
                         <p className="text-sm text-gray-500 truncate max-w-md">
                           ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
@@ -838,15 +748,13 @@ const { toast } = useToast();
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {calendar.provider !== 'google' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => window.open(calendar.calendar_url, '_blank')}
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open(calendar.calendar_url, '_blank')}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
