@@ -3,7 +3,7 @@ import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { Calendar } from "lucide-react";
@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 function AuthRouteEffects() {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     // Check if this is an email confirmation flow (support hash and query params)
@@ -38,6 +39,12 @@ function AuthRouteEffects() {
     // Handle authentication state changes (only for actual auth events)
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("[auth] state change:", event, session?.user?.id, "isEmailConfirmation:", isEmailConfirmation);
+
+      // Clear all cached data when auth state changes to prevent data leakage between users
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+        console.log("[auth] Clearing query cache due to auth state change");
+        queryClient.clear();
+      }
 
       // Only handle actual sign-in events, not TOKEN_REFRESHED or other events
       if (event === "SIGNED_IN" && session?.user) {
