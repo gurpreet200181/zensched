@@ -22,10 +22,18 @@ function AuthRouteEffects() {
   const location = useLocation();
 
   useEffect(() => {
-    // Check if this is an email confirmation flow
-    const isEmailConfirmation = window.location.hash.includes('access_token') || 
-                               window.location.hash.includes('type=signup') ||
-                               window.location.hash.includes('type=email');
+    // Check if this is an email confirmation flow (support hash and query params)
+    const url = new URL(window.location.href);
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+    const queryParams = url.searchParams;
+    const isEmailConfirmation =
+      hashParams.has("access_token") ||
+      hashParams.get("type") === "signup" ||
+      hashParams.get("type") === "email" ||
+      queryParams.has("access_token") ||
+      queryParams.has("code") ||
+      queryParams.get("type") === "signup" ||
+      queryParams.get("type") === "email";
 
     // Handle authentication state changes (only for actual auth events)
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
